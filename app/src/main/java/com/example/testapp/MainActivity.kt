@@ -39,6 +39,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.example.temporizador.TimerUI
 import com.example.testapp.ui.theme.TestAppTheme
 import com.example.testapp.ui.theme.roboto
 import kotlinx.coroutines.delay
@@ -153,4 +154,12 @@ fun GreetingPreview() {
     TestAppTheme {
         Greeting("Android")
     }
+
 }
+
+
+
+
+
+
+
