@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.temporizador.TimerUI
 import com.example.testapp.ajustes.AjustesScreen
 import com.example.testapp.bienestar.BienestarScreen
 import com.example.testapp.calendario.CalendarioScreen
@@ -18,9 +19,7 @@ import com.example.testapp.plan_de_estudios.PlanDeEstudiosScreen
 import com.example.testapp.splash.SplashScreen
 import com.example.testapp.sueño.PlanDetalleScreen
 import com.example.testapp.sueño.SueñoScreen
-import com.example.testapp.temporizador.TemporizadorScreen
 import com.example.testapp.ui.theme.TestAppTheme
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,7 +33,7 @@ class MainActivity : ComponentActivity() {
                         composable("menu") { MenuScreen(navController) }
                         composable("sueño") { SueñoScreen(navController) }
                         composable("bienestar") { BienestarScreen(navController) }
-                        composable("temporizador") { TemporizadorScreen(navController) }
+                        composable("temporizador") { TimerUI() }
                         composable("plan_de_estudios") { PlanDeEstudiosScreen(navController) }
                         composable("calendario") { CalendarioScreen(navController) }
                         composable("ajustes") { AjustesScreen(navController) }
@@ -56,10 +55,3 @@ class MainActivity : ComponentActivity() {
     }
 
 }
-
-
-
-
-
-
-
