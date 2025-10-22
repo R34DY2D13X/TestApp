@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Favorite
@@ -34,6 +35,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.testapp.auth.UserData
+import com.example.testapp.auth.UserRole
 import com.example.testapp.ui.theme.CardBackgroundColor
 import com.example.testapp.ui.theme.DarkBackground
 import com.example.testapp.ui.theme.PrimaryTextColor
@@ -81,7 +84,6 @@ fun MenuScreen(navController: NavController) {
                         selected = currentRoute == item.route,
                         onClick = {
                             currentRoute = item.route
-                            // This will navigate to other screens from the bottom bar if needed
                             navController.navigate(item.route) {
                                 popUpTo(navController.graph.startDestinationId)
                                 launchSingleTop = true
@@ -97,6 +99,16 @@ fun MenuScreen(navController: NavController) {
                             indicatorColor = CardBackgroundColor
                         )
                     )
+                }
+            }
+        },
+        floatingActionButton = {
+            if (UserData.role == UserRole.ADMIN) {
+                FloatingActionButton(
+                    onClick = { /* TODO: Navegar a una pantalla de creación/edición */ },
+                    containerColor = CardBackgroundColor
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Añadir Plan", tint = PrimaryTextColor)
                 }
             }
         }
