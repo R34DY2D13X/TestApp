@@ -5,7 +5,14 @@ import android.os.Handler
 import android.os.Looper
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,19 +26,19 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.testapp.R
 import com.example.testapp.ui.theme.DarkBackground
-import com.example.testapp.ui.theme.PrimaryColor
+import com.example.testapp.ui.theme.PrimaryTextColor
 import kotlinx.coroutines.delay
-
 
 @Composable
 fun SplashScreen(navController: NavController) {
-    LaunchedEffect(true) {
-        delay(2000)
-        navController.navigate("menu") {
+    // This effect will run once when the composable is first displayed
+    LaunchedEffect(key1 = true) {
+        delay(2000) // Wait for 2 seconds
+        navController.navigate("login") {
+            // Remove SplashScreen from the back stack
             popUpTo("splash") { inclusive = true }
         }
     }
-
 
     Box(
         modifier = Modifier
@@ -39,18 +46,21 @@ fun SplashScreen(navController: NavController) {
             .background(DarkBackground),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
             Image(
                 painter = painterResource(id = R.drawable.mainlogo),
-                contentDescription = "Logo",
-                modifier = Modifier.size(200.dp)
+                contentDescription = "HabiCut Logo",
+                modifier = Modifier.size(150.dp)
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = " ¡Bienvenid@s a HabiCut!",
-                color = PrimaryColor,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryTextColor
             )
         }
     }

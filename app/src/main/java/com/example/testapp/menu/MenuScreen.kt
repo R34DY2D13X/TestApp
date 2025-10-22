@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Favorite
@@ -35,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.testapp.auth.UserData
+import com.example.testapp.auth.UserRole
 import com.example.testapp.ui.theme.CardBackgroundColor
 import com.example.testapp.ui.theme.DarkBackground
 import com.example.testapp.ui.theme.PrimaryTextColor
@@ -99,6 +102,16 @@ fun MenuScreen(navController: NavController) {
                             indicatorColor = CardBackgroundColor
                         )
                     )
+                }
+            }
+        },
+        floatingActionButton = {
+            if (UserData.role == UserRole.ADMIN) {
+                FloatingActionButton(
+                    onClick = { /* TODO: Navegar a una pantalla de creación/edición */ },
+                    containerColor = CardBackgroundColor
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Añadir Plan", tint = PrimaryTextColor)
                 }
             }
         }
