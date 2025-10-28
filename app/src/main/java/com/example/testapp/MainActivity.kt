@@ -37,7 +37,9 @@ class MainActivity : ComponentActivity() {
                         composable("menu") { MenuScreen(navController) }
                         composable("sueño") { SueñoScreen(navController) }
                         composable("bienestar") { BienestarScreen(navController) }
-                        composable("temporizador") { TimerUI() }
+                        composable("temporizador") { 
+                            TimerUI(onBack = { navController.popBackStack() }) // <- CAMBIO AQUÍ
+                        }
                         composable("plan_de_estudios") { PlanDeEstudiosScreen(navController) }
                         composable("calendario") { CalendarioScreen(navController) }
                         composable("ajustes") { AjustesScreen(navController) }
