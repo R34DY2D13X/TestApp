@@ -21,12 +21,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.testapp.R
+import com.example.testapp.menu.MenuScreen
 import com.example.testapp.ui.theme.DarkBackground
 import com.example.testapp.ui.theme.PrimaryTextColor
+import com.example.testapp.ui.theme.TestAppTheme
 import kotlinx.coroutines.delay
 
 @Composable
@@ -65,3 +69,11 @@ fun SplashScreen(navController: NavController) {
         }
     }
 }
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun SplashScreen() {
+    TestAppTheme {
+        SplashScreen(navController = rememberNavController())
+    }
+}
+

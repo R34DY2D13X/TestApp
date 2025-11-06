@@ -3,8 +3,8 @@ package com.example.testapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             TestAppTheme {
-                Surface(color = Color(0xFF252440)) {  // <- Aquí pones tu color de fondo
+                Surface(color = MaterialTheme.colorScheme.background) {  // <- Here we use the theme's background color
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "splash") { // <- RUTA INICIAL RESTAURADA
                         composable("splash") { SplashScreen(navController) } // <- SPLASHSCREEN RESTAURADA

@@ -45,7 +45,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.material.icons.extended) // Corrected alias
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -57,6 +57,4 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
     androidTestImplementation(platform(libs.androidx.compose.bom))
-
-
 }
