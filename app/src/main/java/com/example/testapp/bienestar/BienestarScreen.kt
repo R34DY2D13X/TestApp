@@ -108,7 +108,6 @@ fun BienestarScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // OJO: cada llamada incluye drawableResId y NO usa comillas “curvas”
             ActionCard(
                 title = "Respiracion Guiada",
                 drawableResId = R.drawable.respiracion
@@ -174,7 +173,7 @@ private fun ActionCard(
     Box(
         modifier = Modifier
             .padding(vertical = 8.dp)
-            .fillMaxWidth(0.7f) // todas tendrán el mismo ancho relativo
+            .fillMaxWidth(0.45f) // todas tendrán el mismo ancho relativo
             .height(150.dp) // altura fija para uniformidad
             .clip(RoundedCornerShape(22.dp))
             .background(CardBackgroundColor.copy(alpha = 0.8f))
