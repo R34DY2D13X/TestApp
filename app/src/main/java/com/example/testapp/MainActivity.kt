@@ -13,6 +13,9 @@ import androidx.navigation.navArgument
 import com.example.temporizador.TimerUI
 import com.example.testapp.ajustes.AjustesScreen
 import com.example.testapp.bienestar.BienestarScreen
+import com.example.testapp.bienestar.EstiramientoScreen
+import com.example.testapp.bienestar.NoPantallaScreen
+import com.example.testapp.bienestar.RespiracionScreen
 import com.example.testapp.calendario.CalendarioScreen
 import com.example.testapp.login.LoginScreen
 import com.example.testapp.login.RegisterScreen
@@ -37,6 +40,10 @@ class MainActivity : ComponentActivity() {
                         composable("menu") { MenuScreen(navController) }
                         composable("sueño") { SueñoScreen(navController) }
                         composable("bienestar") { BienestarScreen(navController) }
+                        composable("respiracion") { RespiracionScreen(navController) }
+                        composable("no_pantalla") { NoPantallaScreen(navController) } 
+                        composable("estiramiento") { EstiramientoScreen(navController) }
+
                         composable("temporizador") { 
                             TimerUI(onBack = { navController.popBackStack() }) // <- CAMBIO AQUÍ
                         }

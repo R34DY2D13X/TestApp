@@ -111,17 +111,17 @@ fun BienestarScreen(
             ActionCard(
                 title = "Respiracion Guiada",
                 drawableResId = R.drawable.respiracion
-            ) { onActionSelected("respiracion") }
+            ) { navController.navigate("respiracion") }
 
             ActionCard(
                 title = "No pantalla",
                 drawableResId = R.drawable.nopantalla
-            ) { onActionSelected("no_pantalla") }
+            ) { navController.navigate("no_pantalla") }
 
             ActionCard(
                 title = "Paseo/Estiramiento",
-                drawableResId = R.drawable.paseo
-            ) { onActionSelected("paseo") }
+                drawableResId =  R.drawable.paseo
+            ) { navController.navigate("estiramiento") }
 
             Spacer(Modifier.height(16.dp))
         }
