@@ -3,8 +3,11 @@ package com.example.testapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -28,33 +31,59 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             TestAppTheme {
-                Surface(color = Color(0xFF252440)) {  // <- Aquí pones tu color de fondo
-                    val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = "splash") { // <- RUTA INICIAL RESTAURADA
-                        composable("splash") { SplashScreen(navController) } // <- SPLASHSCREEN RESTAURADA
-                        composable("login") { LoginScreen(navController) }
-                        composable("register") { RegisterScreen(navController) } // <- RUTA DE REGISTRO AÑADIDA
-                        composable("menu") { MenuScreen(navController) }
-                        composable("sueño") { SueñoScreen(navController) }
-                        composable("bienestar") { BienestarScreen(navController) }
-                        composable("temporizador") { TemporizadorScreen(navController) }
-                        composable("plan_de_estudios") { PlanDeEstudiosScreen(navController) }
-                        composable("calendario") { CalendarioScreen(navController) }
-                        composable("ajustes") { AjustesScreen(navController) }
-
-                        // Nueva ruta para el detalle del plan
-                        composable(
-                            route = "plan_detalle/{planId}",
-                            arguments = listOf(navArgument("planId") { type = NavType.StringType })
-                        ) { backStackEntry ->
-                            PlanDetalleScreen(
-                                navController = navController,
-                                planId = backStackEntry.arguments?.getString("planId")
-                            )
-                        }
-                    }
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    AppNavigation()
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun AppNavigation() {
+    val navController = rememberNavController()
+    NavHost(navController = navController, startDestination = "splash") {
+        composable("splash") {
+            SplashScreen(navController = navController)
+        }
+        composable("login") {
+            LoginScreen(navController = navController)
+        }
+        composable("register") {
+            RegisterScreen(navController = navController)
+        }
+        composable("menu") {
+            MenuScreen(navController = navController)
+        }
+        composable("plan_de_estudios") {
+            PlanDeEstudiosScreen(navController = navController)
+        }
+        composable("sueño") {
+            SueñoScreen(navController = navController)
+        }
+        composable("bienestar") {
+            BienestarScreen(navController = navController)
+        }
+        composable("temporizador") {
+            TemporizadorScreen(navController = navController)
+        }
+        composable("calendario") {
+            CalendarioScreen(navController = navController)
+        }
+        composable("ajustes") {
+            AjustesScreen(navController = navController)
+        }
+        composable(
+            "plan_detalle/{planId}",
+            arguments = listOf(navArgument("planId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            PlanDetalleScreen(
+                navController = navController,
+                planId = backStackEntry.arguments?.getString("planId")
+            )
         }
     }
 }

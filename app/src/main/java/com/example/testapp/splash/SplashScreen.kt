@@ -1,5 +1,6 @@
 package com.example.testapp.splash
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -9,37 +10,66 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.testapp.R
-import com.example.testapp.ui.theme.DarkBackground
+import com.example.testapp.ui.theme.GradientEnd
+import com.example.testapp.ui.theme.GradientStart
 import com.example.testapp.ui.theme.PrimaryTextColor
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(navController: NavController) {
-    // This effect will run once when the composable is first displayed
+    // 1. Más tiempo en la transición
     LaunchedEffect(key1 = true) {
-        delay(2000) // Wait for 2 seconds
+        delay(3500) // Aumentado a 3.5 segundos
         navController.navigate("login") {
-            // Remove SplashScreen from the back stack
             popUpTo("splash") { inclusive = true }
         }
     }
 
+    // 2. Configuración de animación mejorada
+    val infiniteTransition = rememberInfiniteTransition(label = "logo animation")
+    
+    // Animación de rotación (balanceo)
+    val angle by infiniteTransition.animateFloat(
+        initialValue = -4f, // Un poco más de ángulo
+        targetValue = 4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "logo rotation"
+    )
+
+    // Nueva animación de escala (pulsación)
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "logo scale"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground),
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(GradientStart, GradientEnd)
+                )
+            ),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -48,8 +78,14 @@ fun SplashScreen(navController: NavController) {
         ) {
             Image(
                 painter = painterResource(id = R.drawable.mainlogo),
-                contentDescription = "HabiCut Logo",
-                modifier = Modifier.size(150.dp)
+                contentDescription = "Logo de HabiCut, aplicación para mejorar hábitos de estudio y bienestar",
+                modifier = Modifier
+                    .size(220.dp) // 3. Logo aún más grande
+                    .graphicsLayer { // 4. Aplicar ambas animaciones
+                        rotationZ = angle
+                        scaleX = scale
+                        scaleY = scale
+                    }
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(

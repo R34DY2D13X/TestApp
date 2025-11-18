@@ -1,6 +1,5 @@
 package com.example.testapp.sueño
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -20,15 +20,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.testapp.ui.theme.CardBackgroundColor
-import com.example.testapp.ui.theme.DarkBackground
-import com.example.testapp.ui.theme.PrimaryTextColor
+import com.example.testapp.ui.theme.* // Import all colors
 
-// --- DATA MODELS ---
 enum class EstadoPlan { POR_COMPLETAR, COMPLETADO, NO_COMPLETADO }
 
 data class TareaDiaria(val id: Int, val descripcion: String)
@@ -41,12 +39,10 @@ data class PlanDeSueño(
     val objetivo: String,
     val estado: EstadoPlan,
     val tareas: List<TareaDiaria>,
-    val infoMedica: String // <- CAMPO AÑADIDO
+    val infoMedica: String
 )
 
-// --- MOCK DATA REPOSITORY ---
 object SueñoRepository {
-    // Simulación de datos que podrían venir de una base de datos
     private val planes = listOf(
         PlanDeSueño(
             id = "plan1",
@@ -98,20 +94,19 @@ object SueñoRepository {
     fun obtenerPlanPorId(id: String): PlanDeSueño? = planes.find { it.id == id }
 }
 
-// --- COMPOSABLES ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SueñoScreen(navController: NavController) {
     val planesAgrupados = remember { SueñoRepository.obtenerPlanes().groupBy { it.estado } }
 
     Scaffold(
-        containerColor = DarkBackground,
+        containerColor = GradientEnd, // Nuevo fondo oscuro
         topBar = {
             TopAppBar(
-                title = { Text("Planes de Sueño", color = PrimaryTextColor) },
+                title = { Text("Planes de Sueño", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = PrimaryTextColor)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -130,7 +125,7 @@ fun SueñoScreen(navController: NavController) {
                     PlanCard(plan = plan, onClick = {
                         navController.navigate("plan_detalle/${plan.id}")
                     })
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(16.dp))
                 }
             }
         }
@@ -141,8 +136,8 @@ fun SueñoScreen(navController: NavController) {
 private fun Header(texto: String) {
     Text(
         text = texto,
-        style = MaterialTheme.typography.headlineSmall,
-        color = PrimaryTextColor.copy(alpha = 0.8f),
+        style = MaterialTheme.typography.titleMedium,
+        color = TextSecondary, // Color de texto secundario
         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
     )
 }
@@ -151,22 +146,29 @@ private fun Header(texto: String) {
 @Composable
 private fun PlanCard(plan: PlanDeSueño, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(12.dp)),
         onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = CardBackgroundColor),
-        elevation = CardDefaults.cardElevation(4.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = ButtonPrimary) // Nuevo color de fondo para la tarjeta
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(plan.nombre, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = PrimaryTextColor)
+                Text(plan.nombre, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(Modifier.height(4.dp))
-                Text(plan.descripcion, style = MaterialTheme.typography.bodyMedium, color = PrimaryTextColor.copy(alpha = 0.9f))
+                Text(plan.descripcion, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.9f))
             }
             if (plan.estado == EstadoPlan.COMPLETADO) {
-                Icon(Icons.Default.CheckCircle, contentDescription = "Completado", tint = Color.Green, modifier = Modifier.size(32.dp).padding(start = 8.dp))
+                Icon(
+                    imageVector = Icons.Default.CheckCircle, 
+                    contentDescription = "Completado", 
+                    tint = LinkGreen, // Nuevo color verde de acento
+                    modifier = Modifier.size(32.dp).padding(start = 8.dp)
+                )
             }
         }
     }
