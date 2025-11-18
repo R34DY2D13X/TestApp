@@ -16,30 +16,49 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.testapp.MyApplication
+import com.example.testapp.auth.UserData
+import kotlinx.coroutines.launch
 import com.example.testapp.ui.theme.ButtonPrimary
 import com.example.testapp.ui.theme.GradientEnd
 import com.example.testapp.ui.theme.LinkGreen
 import com.example.testapp.ui.theme.PrimaryTextColor
 import com.example.testapp.ui.theme.TextSecondary
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavController) {
+    val context = LocalContext.current
+    val database = (context.applicationContext as MyApplication).database
+    val userDao = database.userDao()
+    val coroutineScope = rememberCoroutineScope()
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Surface(color = GradientEnd, modifier = Modifier.fillMaxSize()) {
         Column(
@@ -108,27 +127,31 @@ fun LoginScreen(navController: NavController) {
             )
             Spacer(modifier = Modifier.height(32.dp))
 
-            Button(
-                onClick = { /* TODO: Implementar lógica de Login real */
-                    navController.navigate("menu") { popUpTo("login") { inclusive = true } }
-                },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp)),
-                colors = ButtonDefaults.buttonColors(containerColor = ButtonPrimary)
-            ) {
-                Text("Iniciar Sesión", color = Color.White, fontSize = 16.sp)
-            }
-            Spacer(modifier = Modifier.height(24.dp))
+        errorMessage?.let {
+            Text(text = it, color = androidx.compose.ui.graphics.Color.Red)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
-            Text(
-                text = "¿No tienes cuenta? Regístrate",
-                color = LinkGreen,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.clickable { navController.navigate("register") }
-            )
+        Button(onClick = {
+            coroutineScope.launch {
+                val user = userDao.getUserByEmail(email)
+                if (user == null) {
+                    errorMessage = "Aun no tienes una cuenta, inicia tu registro"
+                } else if (user.password != password) { // In a real app, compare hashed passwords
+                    errorMessage = "Contraseña incorrecta"
+                } else {
+                    // Login successful, update UserData and navigate
+                    UserData.role = user.role
+                    navController.navigate("menu") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            }
+        }) {
+            Text("Iniciar sesion")
+        }
+        TextButton(onClick = { navController.navigate("Regsistrar") }) {
+            Text("No tienes cuenta? registrate!")
         }
     }
 }
