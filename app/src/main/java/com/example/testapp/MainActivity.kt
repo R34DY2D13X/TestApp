@@ -3,8 +3,12 @@ package com.example.testapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -28,18 +32,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             TestAppTheme {
-                Surface(color = MaterialTheme.colorScheme.background) {  // <- Here we use the theme's background color
+                Surface(color = Color(0xFF252440)) {  // <- Aquí pones tu color de fondo
                     val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = "splash") { // <- RUTA INICIAL RESTAURADA
-                        composable("splash") { SplashScreen(navController) } // <- SPLASHSCREEN RESTAURADA
-                        composable("login") { LoginScreen(navController) }
-                        composable("register") { RegisterScreen(navController) } // <- RUTA DE REGISTRO AÑADIDA
+                    NavHost(navController = navController, startDestination = "splash") {
+                        composable("splash") { SplashScreen(navController) }
                         composable("menu") { MenuScreen(navController) }
                         composable("sueño") { SueñoScreen(navController) }
                         composable("bienestar") { BienestarScreen(navController) }
-                        composable("temporizador") { 
-                            TimerUI(onBack = { navController.popBackStack() }) // <- CAMBIO AQUÍ
-                        }
+                        composable("temporizador") { TemporizadorScreen(navController) }
                         composable("plan_de_estudios") { PlanDeEstudiosScreen(navController) }
                         composable("calendario") { CalendarioScreen(navController) }
                         composable("ajustes") { AjustesScreen(navController) }
