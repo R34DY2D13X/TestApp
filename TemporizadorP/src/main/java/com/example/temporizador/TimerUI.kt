@@ -2,6 +2,7 @@ package com.example.temporizador
 
 import android.media.Ringtone
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.CountDownTimer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -74,7 +75,7 @@ fun TimerUI(onBack: () -> Unit = {}) {
 
             TimerModule(
                 title = "Tiempo de estudio:",
-                initialTimeInMinutes = 25, // <-- VALOR RESTAURADO
+                initialTimeInMinutes = 25,
                 onTimerFinished = { isStudyTimeCompleted = true },
                 completionTitle = "¡Tiempo de estudio completado!",
                 completionMessage = "¡Buen trabajo! Ahora toma un merecido descanso."
@@ -93,11 +94,11 @@ fun TimerUI(onBack: () -> Unit = {}) {
             ) {
                 TimerModule(
                     title = "Descanso:",
-                    initialTimeInMinutes = 10, // <-- VALOR RESTAURADO
-                    isEnabled = isStudyTimeCompleted, // Se habilita cuando el estudio termina
+                    initialTimeInMinutes = 10,
+                    isEnabled = isStudyTimeCompleted,
                     completionTitle = "¡Muy bien!",
                     completionMessage = "Ya terminaste de estudiar por hoy, puedes continuar con otros módulos o intentar estudiar de nuevo más tarde.",
-                    onCompletionAcknowledged = onBack // Vuelve al menú al terminar
+                    onCompletionAcknowledged = onBack
                 )
             }
         }
@@ -108,31 +109,34 @@ fun TimerUI(onBack: () -> Unit = {}) {
 fun TimerModule(
     title: String,
     initialTimeInMinutes: Long,
-    initialTimeInSecondsOverride: Long? = null, // Se mantiene por si se necesita para futuras pruebas
     isEnabled: Boolean = true,
     onTimerFinished: () -> Unit = {},
     completionTitle: String,
     completionMessage: String,
     onCompletionAcknowledged: () -> Unit = {}
 ) {
-    val initialTimeInSeconds = initialTimeInSecondsOverride ?: TimeUnit.MINUTES.toSeconds(initialTimeInMinutes)
-    var timeLeftInSeconds by remember { mutableStateOf(initialTimeInSeconds) }
+    val initialTimeInSeconds = remember(initialTimeInMinutes) { TimeUnit.MINUTES.toSeconds(initialTimeInMinutes) }
+    var timeLeftInSeconds by remember(initialTimeInMinutes) { mutableStateOf(initialTimeInSeconds) }
     var timerState by remember { mutableStateOf(TimerState.IDLE) }
     val timer = remember { mutableStateOf<CountDownTimer?>(null) }
     val context = LocalContext.current
+    
+    // Usamos rememberUpdatedState para el callback para evitar problemas en closures
+    val currentOnTimerFinished by rememberUpdatedState(onTimerFinished)
+
     val ringtone = remember { mutableStateOf<Ringtone?>(null) }
     var showCompletionDialog by remember { mutableStateOf(false) }
 
     DisposableEffect(initialTimeInMinutes, isEnabled) {
-        if (!isEnabled) { // Si se deshabilita, resetea el timer
+        if (!isEnabled) {
             timer.value?.cancel()
-            ringtone.value?.stop()
+            try { ringtone.value?.stop() } catch (e: Exception) {}
             timerState = TimerState.IDLE
             timeLeftInSeconds = initialTimeInSeconds
         }
         onDispose {
             timer.value?.cancel()
-            ringtone.value?.stop()
+            try { ringtone.value?.stop() } catch (e: Exception) {}
         }
     }
 
@@ -140,7 +144,7 @@ fun TimerModule(
         AlertDialog(
             onDismissRequest = {
                 showCompletionDialog = false
-                ringtone.value?.stop()
+                try { ringtone.value?.stop() } catch (e: Exception) {}
                 onCompletionAcknowledged()
             },
             title = { Text(completionTitle, style = MaterialTheme.typography.headlineMedium) },
@@ -148,7 +152,7 @@ fun TimerModule(
             confirmButton = {
                 Button(onClick = {
                     showCompletionDialog = false
-                    ringtone.value?.stop()
+                    try { ringtone.value?.stop() } catch (e: Exception) {}
                     onCompletionAcknowledged()
                 }) {
                     Text("Aceptar")
@@ -168,8 +172,9 @@ fun TimerModule(
         Text(text = title, style = MaterialTheme.typography.titleLarge, color = Color.White, modifier = Modifier.padding(bottom = 8.dp))
 
         Box(contentAlignment = Alignment.Center) {
+            val progress = if (initialTimeInSeconds > 0) timeLeftInSeconds.toFloat() / initialTimeInSeconds.toFloat() else 0f
             CircularProgressIndicator(
-                progress = { timeLeftInSeconds.toFloat() / initialTimeInSeconds.toFloat() },
+                progress = { progress },
                 modifier = Modifier.size(180.dp),
                 color = buttonColor,
                 strokeWidth = 8.dp,
@@ -199,13 +204,21 @@ fun TimerModule(
                                 override fun onFinish() {
                                     timeLeftInSeconds = 0
                                     timerState = TimerState.IDLE
-                                    onTimerFinished()
+                                    currentOnTimerFinished()
                                     try {
-                                        val notificationUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                                        ringtone.value = RingtoneManager.getRingtone(context, notificationUri)
-                                        ringtone.value?.play()
+                                        val notificationUri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM) 
+                                            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                                        
+                                        if (notificationUri != null) {
+                                            val r = RingtoneManager.getRingtone(context, notificationUri)
+                                            ringtone.value = r
+                                            r?.play()
+                                        }
                                         showCompletionDialog = true
-                                    } catch (e: Exception) { e.printStackTrace() }
+                                    } catch (e: Exception) { 
+                                        e.printStackTrace()
+                                        showCompletionDialog = true // Mostrar diálogo aunque falle el sonido
+                                    }
                                 }
                             }.start()
                         }
@@ -225,7 +238,7 @@ fun TimerModule(
             ) {
                  IconButton(onClick = {
                     timer.value?.cancel()
-                    ringtone.value?.stop()
+                    try { ringtone.value?.stop() } catch (e: Exception) {}
                     timerState = TimerState.IDLE
                     timeLeftInSeconds = initialTimeInSeconds
                 }, enabled = isEnabled) {

@@ -148,7 +148,7 @@ fun LoginScreen(navController: NavController) {
             }) {
                 Text("Iniciar sesion")
             }
-            TextButton(onClick = { navController.navigate("Regsistrar") }) {
+            TextButton(onClick = { navController.navigate("register") }) { // <-- ERROR CORREGIDO AQUÍ
                 Text("No tienes cuenta? registrate!")
             }
         }
