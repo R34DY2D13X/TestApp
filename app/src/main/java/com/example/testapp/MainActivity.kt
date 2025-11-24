@@ -33,10 +33,10 @@ class MainActivity : ComponentActivity() {
             TestAppTheme {
                 Surface(color = Color(0xFF252440)) {  // <- Aquí pones tu color de fondo
                     val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = "splash") { // <- RUTA INICIAL RESTAURADA
-                        composable("splash") { SplashScreen(navController) } // <- SPLASHSCREEN RESTAURADA
+                    NavHost(navController = navController, startDestination = "splash") { // <-- RUTA INICIAL RESTAURADA
+                        composable("splash") { SplashScreen(navController) } 
                         composable("login") { LoginScreen(navController) }
-                        composable("register") { RegisterScreen(navController) } // <- RUTA DE REGISTRO AÑADIDA
+                        composable("register") { RegisterScreen(navController) }
                         composable("menu") { MenuScreen(navController) }
                         composable("sueño") { SueñoScreen(navController) }
                         composable("bienestar") { BienestarScreen(navController) }
@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
                         composable("estiramiento") { EstiramientoScreen(navController) }
 
                         composable("temporizador") { 
-                            TimerUI(onBack = { navController.popBackStack() }) // <- CAMBIO AQUÍ
+                            TimerUI(onBack = { navController.popBackStack() })
                         }
                         composable("plan_de_estudios") { PlanDeEstudiosScreen(navController) }
                         composable("calendario") { CalendarioScreen(navController) }
