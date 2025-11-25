@@ -12,9 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,6 +20,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.testapp.chat.ChatWindow
+import com.example.testapp.chat.ChatbotButton
+import com.example.testapp.chat.ChatbotViewModel
 import kotlinx.coroutines.delay
 
 // Definimos los grupos de imágenes
@@ -57,7 +59,37 @@ private val placeholderColors = listOf(Color(0xFF64B5F6), Color(0xFFB0C4DE), Col
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun HomeScreen() {
+fun HomeScreen(chatbotViewModel: ChatbotViewModel = viewModel()) {
+    var showChat by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf("") }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Tu contenido original del HomeScreen
+        HomeContent()
+
+        // Lógica del Chatbot integrada
+        if (showChat) {
+            ChatWindow(
+                message = message,
+                onMessageChange = { message = it },
+                onSend = {
+                    if (message.isNotBlank()) {
+                        chatbotViewModel.sendMessage(message)
+                        message = ""
+                    }
+                },
+                onClose = { showChat = false },
+                messages = chatbotViewModel.messages
+            )
+        } else {
+            ChatbotButton(onClick = { showChat = true })
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun HomeContent() {
     // Lógica Random: Selecciona un grupo al azar cada vez que se carga la pantalla
     val selectedGroup = remember {
         if (allGroups.isNotEmpty()) allGroups.random() else emptyList()

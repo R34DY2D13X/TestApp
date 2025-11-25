@@ -36,10 +36,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.testapp.R
 import com.example.testapp.auth.UserData
 import com.example.testapp.auth.UserRole
+import com.example.testapp.chat.ChatWindow
+import com.example.testapp.chat.ChatbotButton
+import com.example.testapp.chat.ChatbotViewModel
 import com.example.testapp.ui.theme.CardBackgroundColor
 import com.example.testapp.ui.theme.DarkBackground
 import com.example.testapp.ui.theme.PrimaryTextColor
@@ -107,8 +111,10 @@ private val bottomNavItems = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun MenuScreen(navController: NavController) {
+fun MenuScreen(navController: NavController, chatbotViewModel: ChatbotViewModel = viewModel()) {
     var currentRoute by rememberSaveable { mutableStateOf("menu") }
+    var showChat by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf("") }
 
     // Selección aleatoria del grupo de imágenes para el carrusel
     val selectedGroup = remember {
@@ -139,171 +145,191 @@ fun MenuScreen(navController: NavController) {
         }
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = DarkBackground,
-        bottomBar = {
-            NavigationBar(containerColor = CardBackgroundColor.copy(alpha = 0.8f)) {
-                bottomNavItems.forEach { item ->
-                    NavigationBarItem(
-                        selected = currentRoute == item.route,
-                        onClick = {
-                            currentRoute = item.route
-                            navController.navigate(item.route) {
-                                popUpTo(navController.graph.startDestinationId)
-                                launchSingleTop = true
-                            }
-                        },
-                        icon = { Icon(item.icon, contentDescription = item.label, tint = PrimaryTextColor) },
-                        label = { Text(item.label, color = PrimaryTextColor) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryTextColor,
-                            unselectedIconColor = PrimaryTextColor.copy(alpha = 0.6f),
-                            selectedTextColor = PrimaryTextColor,
-                            unselectedTextColor = PrimaryTextColor.copy(alpha = 0.6f),
-                            indicatorColor = CardBackgroundColor
-                        )
-                    )
-                }
-            }
-        },
-        floatingActionButton = {
-            if (UserData.role == UserRole.ADMIN) {
-                FloatingActionButton(
-                    onClick = { /* TODO: Navegar a una pantalla de creación/edición */ },
-                    containerColor = CardBackgroundColor
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Añadir Plan", tint = PrimaryTextColor)
-                }
-            }
-        }
-    ) { innerPadding ->
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize().padding(innerPadding).background(DarkBackground),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Carrusel de Imágenes al inicio (Top)
-            item(span = { GridItemSpan(2) }) { 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(carouselHeight)
-                        .padding(bottom = 24.dp) // Separación de los botones
-                        .clickable {
-                            // Lógica de navegación al hacer clic en el carrusel
-                            when (selectedGroup) {
-                                groupMin -> navController.navigate("temporizador")
-                                groupMin2 -> navController.navigate("plan_de_estudios")
-                                groupMin3 -> navController.navigate("bienestar")
-                                groupSotf -> navController.navigate("sueño")
-                            }
-                        }
-                ) {
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier.fillMaxSize()
-                    ) { page ->
-                        // Calculamos el índice real usando módulo para ciclo infinito
-                        val index = page % realSize
-                        
-                        if (displayImages.isNotEmpty()) {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                Image(
-                                    painter = painterResource(id = displayImages[index]),
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-
-                                // Agregamos estela negra y texto a la izquierda para todos los grupos
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            Brush.horizontalGradient(
-                                                colors = listOf(Color.Black.copy(alpha = 0.9f), Color.Transparent),
-                                                startX = 0f,
-                                                endX = Float.POSITIVE_INFINITY
-                                            )
-                                        )
-                                )
-                                
-                                Column(
-                                    modifier = Modifier
-                                        .align(Alignment.CenterStart) // Alineación a la izquierda y centrado verticalmente
-                                        .padding(16.dp)
-                                        .fillMaxWidth(0.6f), // Ocupar solo una parte del ancho para dar efecto de lado izquierdo
-                                    horizontalAlignment = Alignment.Start
-                                ) {
-                                    val textoPrincipal = when (selectedGroup) {
-                                        groupMin -> "¿Necesitas ayuda para concentrarte?"
-                                        groupMin2 -> "Organizar tu estudio es organizar tus ideas"
-                                        groupMin3 -> "¿Tu bienestar está en pausa?"
-                                        else -> "El sueño reparador empieza con tu rutina"
-                                    }
-
-                                    Text(
-                                        text = textoPrincipal,
-                                        style = MaterialTheme.typography.headlineSmall.copy( // Texto un poco más grande
-                                            shadow = Shadow(
-                                                color = Color.Black,
-                                                offset = Offset(2f, 2f),
-                                                blurRadius = 4f
-                                            )
-                                        ),
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        textAlign = TextAlign.Start
-                                    )
-                                    
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    
-                                    Text(
-                                        text = "¡PRESIONA AQUÍ!",
-                                        style = MaterialTheme.typography.labelLarge.copy(
-                                            shadow = Shadow(
-                                                color = Color.Black,
-                                                offset = Offset(1f, 1f),
-                                                blurRadius = 2f
-                                            )
-                                        ),
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color(0xFFFFD700), // Color dorado llamativo
-                                        textAlign = TextAlign.Start
-                                    )
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = DarkBackground,
+            bottomBar = {
+                NavigationBar(containerColor = CardBackgroundColor.copy(alpha = 0.8f)) {
+                    bottomNavItems.forEach { item ->
+                        NavigationBarItem(
+                            selected = currentRoute == item.route,
+                            onClick = {
+                                currentRoute = item.route
+                                navController.navigate(item.route) {
+                                    popUpTo(navController.graph.startDestinationId)
+                                    launchSingleTop = true
                                 }
-                            }
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(placeholderColors[index])
+                            },
+                            icon = { Icon(item.icon, contentDescription = item.label, tint = PrimaryTextColor) },
+                            label = { Text(item.label, color = PrimaryTextColor) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PrimaryTextColor,
+                                unselectedIconColor = PrimaryTextColor.copy(alpha = 0.6f),
+                                selectedTextColor = PrimaryTextColor,
+                                unselectedTextColor = PrimaryTextColor.copy(alpha = 0.6f),
+                                indicatorColor = CardBackgroundColor
                             )
-                        }
+                        )
+                    }
+                }
+            },
+            floatingActionButton = {
+                if (UserData.role == UserRole.ADMIN) {
+                    FloatingActionButton(
+                        onClick = { /* TODO: Navegar a una pantalla de creación/edición */ },
+                        containerColor = CardBackgroundColor
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Añadir Plan", tint = PrimaryTextColor)
                     }
                 }
             }
+        ) { innerPadding ->
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize().padding(innerPadding).background(DarkBackground),
+                contentPadding = PaddingValues(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Carrusel de Imágenes al inicio (Top)
+                item(span = { GridItemSpan(2) }) { 
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(carouselHeight)
+                            .padding(bottom = 24.dp) // Separación de los botones
+                            .clickable {
+                                // Lógica de navegación al hacer clic en el carrusel
+                                when (selectedGroup) {
+                                    groupMin -> navController.navigate("temporizador")
+                                    groupMin2 -> navController.navigate("plan_de_estudios")
+                                    groupMin3 -> navController.navigate("bienestar")
+                                    groupSotf -> navController.navigate("sueño")
+                                }
+                            }
+                    ) {
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize()
+                        ) { page ->
+                            // Calculamos el índice real usando módulo para ciclo infinito
+                            val index = page % realSize
+                            
+                            if (displayImages.isNotEmpty()) {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    Image(
+                                        painter = painterResource(id = displayImages[index]),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
 
-            // Título
-            item(span = { GridItemSpan(2) }) { 
-                Text(
-                    text = "MEJORA TUS HÁBITOS CON NOSOTROS",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = PrimaryTextColor,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = 24.dp)
-                )
-            }
-            
-            // Tarjetas del Menú
-            items(menuItems) { item ->
-                MenuCard(item = item) {
-                    navController.navigate(item.route)
+                                    // Agregamos estela negra y texto a la izquierda para todos los grupos
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    colors = listOf(Color.Black.copy(alpha = 0.9f), Color.Transparent),
+                                                    startX = 0f,
+                                                    endX = Float.POSITIVE_INFINITY
+                                                )
+                                            )
+                                    )
+                                    
+                                    Column(
+                                        modifier = Modifier
+                                            .align(Alignment.CenterStart) // Alineación a la izquierda y centrado verticalmente
+                                            .padding(16.dp)
+                                            .fillMaxWidth(0.6f), // Ocupar solo una parte del ancho para dar efecto de lado izquierdo
+                                        horizontalAlignment = Alignment.Start
+                                    ) {
+                                        val textoPrincipal = when (selectedGroup) {
+                                            groupMin -> "¿Necesitas ayuda para concentrarte?"
+                                            groupMin2 -> "Organizar tu estudio es organizar tus ideas"
+                                            groupMin3 -> "¿Tu bienestar está en pausa?"
+                                            else -> "El sueño reparador empieza con tu rutina"
+                                        }
+
+                                        Text(
+                                            text = textoPrincipal,
+                                            style = MaterialTheme. typography.headlineSmall.copy( // Texto un poco más grande
+                                                shadow = Shadow(
+                                                    color = Color.Black,
+                                                    offset = Offset(2f, 2f),
+                                                    blurRadius = 4f
+                                                )
+                                            ),
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            textAlign = TextAlign.Start
+                                        )
+                                        
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        
+                                        Text(
+                                            text = "¡PRESIONA AQUÍ!",
+                                            style = MaterialTheme.typography.labelLarge.copy(
+                                                shadow = Shadow(
+                                                    color = Color.Black,
+                                                    offset = Offset(1f, 1f),
+                                                    blurRadius = 2f
+                                                )
+                                            ),
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = Color(0xFFFFD700), // Color dorado llamativo
+                                            textAlign = TextAlign.Start
+                                        )
+                                    }
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(placeholderColors[index])
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Título
+                item(span = { GridItemSpan(2) }) { 
+                    Text(
+                        text = "MEJORA TUS HÁBITOS CON NOSOTROS",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = PrimaryTextColor,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(bottom = 24.dp)
+                    )
+                }
+                
+                // Tarjetas del Menú
+                items(menuItems) { item ->
+                    MenuCard(item = item) {
+                        navController.navigate(item.route)
+                    }
                 }
             }
+        }
+
+        // Lógica del Chatbot integrada
+        if (showChat) {
+            ChatWindow(
+                message = message,
+                onMessageChange = { message = it },
+                onSend = {
+                    if (message.isNotBlank()) {
+                        chatbotViewModel.sendMessage(message)
+                        message = ""
+                    }
+                },
+                onClose = { showChat = false },
+                messages = chatbotViewModel.messages
+            )
+        } else {
+            ChatbotButton(onClick = { showChat = true })
         }
     }
 }
