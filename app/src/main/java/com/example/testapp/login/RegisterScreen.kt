@@ -13,20 +13,31 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.testapp.MyApplication
+import com.example.testapp.ajustes.SettingsViewModel
 import com.example.testapp.auth.UserRole
 import com.example.testapp.data.db.User
 import com.example.testapp.ui.theme.DarkBackground
 import com.example.testapp.ui.theme.PrimaryTextColor
+import com.example.testapp.ui.theme.TextSecondary
 import kotlinx.coroutines.launch
 
 @Composable
-fun RegisterScreen(navController: NavController) {
+fun RegisterScreen(
+    navController: NavController,
+    settingsViewModel: SettingsViewModel = viewModel()
+) {
     val context = LocalContext.current
     val database = (context.applicationContext as MyApplication).database
     val userDao = database.userDao()
     val coroutineScope = rememberCoroutineScope()
+
+    val settings by settingsViewModel.uiState.collectAsState()
+    val fontSize = settings.fontSize
+    val highContrast = settings.highContrast
 
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -34,7 +45,14 @@ fun RegisterScreen(navController: NavController) {
     var confirmPassword by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    Surface(color = DarkBackground, modifier = Modifier.fillMaxSize()) {
+    // --- Colores Dinámicos ---
+    val dynamicPrimaryText = if (highContrast) Color.White else PrimaryTextColor
+    val dynamicSecondaryText = if (highContrast) Color.Yellow else PrimaryTextColor.copy(alpha = 0.8f)
+    val dynamicBorder = if (highContrast) Color.White else MaterialTheme.colorScheme.primary
+    val dynamicUnfocusedBorder = if (highContrast) Color.Gray else PrimaryTextColor.copy(alpha = 0.5f)
+    val dynamicLabel = if (highContrast) Color.Yellow else MaterialTheme.colorScheme.primary
+
+    Surface(color = if (highContrast) Color.Black else DarkBackground, modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -44,30 +62,31 @@ fun RegisterScreen(navController: NavController) {
         ) {
             Text(
                 "Crea tu Cuenta",
-                style = MaterialTheme.typography.headlineLarge,
-                color = PrimaryTextColor
+                style = MaterialTheme.typography.headlineLarge.copy(fontSize = MaterialTheme.typography.headlineLarge.fontSize * fontSize),
+                color = dynamicPrimaryText
             )
             Text(
                 "Únete a la comunidad HabiCut",
-                style = MaterialTheme.typography.titleMedium,
-                color = PrimaryTextColor.copy(alpha = 0.8f)
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize * fontSize),
+                color = dynamicSecondaryText
             )
             Spacer(modifier = Modifier.height(48.dp))
 
             OutlinedTextField(
                 value = nombre,
                 onValueChange = { nombre = it },
-                label = { Text("Nombre Completo") },
+                label = { Text("Nombre Completo", fontSize = 16.sp * fontSize) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 18.sp * fontSize),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = PrimaryTextColor,
-                    unfocusedTextColor = PrimaryTextColor,
-                    cursorColor = PrimaryTextColor,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = PrimaryTextColor.copy(alpha = 0.5f),
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = PrimaryTextColor.copy(alpha = 0.7f)
+                    focusedTextColor = dynamicPrimaryText,
+                    unfocusedTextColor = dynamicPrimaryText,
+                    cursorColor = dynamicPrimaryText,
+                    focusedBorderColor = dynamicBorder,
+                    unfocusedBorderColor = dynamicUnfocusedBorder,
+                    focusedLabelColor = dynamicLabel,
+                    unfocusedLabelColor = dynamicSecondaryText
                 )
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -75,18 +94,19 @@ fun RegisterScreen(navController: NavController) {
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Correo Electrónico") },
+                label = { Text("Correo Electrónico", fontSize = 16.sp * fontSize) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                textStyle = LocalTextStyle.current.copy(fontSize = 18.sp * fontSize),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = PrimaryTextColor,
-                    unfocusedTextColor = PrimaryTextColor,
-                    cursorColor = PrimaryTextColor,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = PrimaryTextColor.copy(alpha = 0.5f),
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = PrimaryTextColor.copy(alpha = 0.7f)
+                    focusedTextColor = dynamicPrimaryText,
+                    unfocusedTextColor = dynamicPrimaryText,
+                    cursorColor = dynamicPrimaryText,
+                    focusedBorderColor = dynamicBorder,
+                    unfocusedBorderColor = dynamicUnfocusedBorder,
+                    focusedLabelColor = dynamicLabel,
+                    unfocusedLabelColor = dynamicSecondaryText
                 )
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -94,19 +114,20 @@ fun RegisterScreen(navController: NavController) {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Contraseña") },
+                label = { Text("Contraseña", fontSize = 16.sp * fontSize) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                textStyle = LocalTextStyle.current.copy(fontSize = 18.sp * fontSize),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = PrimaryTextColor,
-                    unfocusedTextColor = PrimaryTextColor,
-                    cursorColor = PrimaryTextColor,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = PrimaryTextColor.copy(alpha = 0.5f),
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = PrimaryTextColor.copy(alpha = 0.7f)
+                    focusedTextColor = dynamicPrimaryText,
+                    unfocusedTextColor = dynamicPrimaryText,
+                    cursorColor = dynamicPrimaryText,
+                    focusedBorderColor = dynamicBorder,
+                    unfocusedBorderColor = dynamicUnfocusedBorder,
+                    focusedLabelColor = dynamicLabel,
+                    unfocusedLabelColor = dynamicSecondaryText
                 )
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -114,25 +135,26 @@ fun RegisterScreen(navController: NavController) {
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
-                label = { Text("Confirmar Contraseña") },
+                label = { Text("Confirmar Contraseña", fontSize = 16.sp * fontSize) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                textStyle = LocalTextStyle.current.copy(fontSize = 18.sp * fontSize),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = PrimaryTextColor,
-                    unfocusedTextColor = PrimaryTextColor,
-                    cursorColor = PrimaryTextColor,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = PrimaryTextColor.copy(alpha = 0.5f),
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = PrimaryTextColor.copy(alpha = 0.7f)
+                    focusedTextColor = dynamicPrimaryText,
+                    unfocusedTextColor = dynamicPrimaryText,
+                    cursorColor = dynamicPrimaryText,
+                    focusedBorderColor = dynamicBorder,
+                    unfocusedBorderColor = dynamicUnfocusedBorder,
+                    focusedLabelColor = dynamicLabel,
+                    unfocusedLabelColor = dynamicSecondaryText
                 )
             )
             Spacer(modifier = Modifier.height(32.dp))
 
             errorMessage?.let {
-                Text(text = it, color = Color.Red)
+                Text(text = it, color = Color.Red, fontSize = 14.sp * fontSize)
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
@@ -141,29 +163,31 @@ fun RegisterScreen(navController: NavController) {
                     errorMessage = "Las contraseñas no coinciden"
                     return@Button
                 }
+                if (nombre.isBlank() || email.isBlank() || password.isBlank()) {
+                    errorMessage = "Por favor, rellena todos los campos"
+                    return@Button
+                }
                 coroutineScope.launch {
-                    // Check if user already exists
                     val existingUser = userDao.getUserByEmail(email)
                     if (existingUser != null) {
-                        errorMessage = "User with this email already exists"
+                        errorMessage = "Ya existe un usuario con este correo"
                     } else {
-                        // In a real app, hash the password!
-                        val newUser = User(email = email, password = password, role = UserRole.USER)
+                        val newUser = User(email = email, nombre = nombre, password = password, role = UserRole.USER)
                         userDao.insertUser(newUser)
-                        // Navigate to login screen after successful registration
                         navController.navigate("login") {
                             popUpTo("login") { inclusive = true }
                         }
                     }
                 }
             }) {
-                Text("Registrarse")
+                Text("Registrarse", fontSize = 16.sp * fontSize)
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "¿Ya tienes cuenta? Inicia Sesión",
-                color = MaterialTheme.colorScheme.primary,
+                color = dynamicLabel,
                 textAlign = TextAlign.Center,
+                fontSize = 14.sp * fontSize,
                 modifier = Modifier.clickable { navController.navigate("login") }
             )
         }

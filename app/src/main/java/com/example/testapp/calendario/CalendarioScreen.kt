@@ -7,10 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
@@ -21,336 +22,216 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.testapp.ajustes.SettingsViewModel
 import com.example.testapp.ui.theme.ButtonPrimary
 import com.example.testapp.ui.theme.GradientEnd
 import com.example.testapp.ui.theme.LinkGreen
 import com.example.testapp.ui.theme.TextSecondary
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
-import kotlin.random.Random
 
-// ----------------------------------------------------------------------
-//  MODELOS PARA EL CALENDARIO
-// ----------------------------------------------------------------------
-
-enum class CalendarItemType {
-    ESTUDIO,   // Tareas del plan de estudios
-    HABITO,    // Hábitos
-    PERSONAL   // Eventos personales
-}
+enum class CalendarItemType { ESTUDIO, HABITO, PERSONAL }
 
 data class CalendarItem(
-    val id: Int = Random.nextInt(),
     val date: LocalDate,
     val title: String,
-    val description: String = "",
+    val description: String,
     val type: CalendarItemType
 )
 
-// ----------------------------------------------------------------------
-//  PANTALLA PRINCIPAL DE CALENDARIO
-// ----------------------------------------------------------------------
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarioScreen(navController: NavController) {
+fun CalendarioScreen(
+    navController: NavController,
+    settingsViewModel: SettingsViewModel = viewModel()
+) {
 
-    // Mes y día seleccionados
+    val settings by settingsViewModel.uiState.collectAsState()
+    val highContrast = settings.highContrast
+
+    var currentMonth by remember { mutableStateOf(LocalDate.now()) }
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
-    var currentMonth by remember { mutableStateOf(YearMonth.now()) }
 
-    // Lista de eventos del calendario (por ahora locales).
-    // Más adelante se puede sustituir por un ViewModel compartido
-    // con el módulo de Plan de Estudios / Hábitos.
     val calendarItems = remember { mutableStateListOf<CalendarItem>() }
-
-    // Ejemplos iniciales
-    LaunchedEffect(Unit) {
-        if (calendarItems.isEmpty()) {
-            val today = LocalDate.now()
-            calendarItems.addAll(
-                listOf(
-                    CalendarItem(
-                        date = today,
-                        title = "Cuestionario de Redes",
-                        description = "Plan de estudios",
-                        type = CalendarItemType.ESTUDIO
-                    ),
-                    CalendarItem(
-                        date = today,
-                        title = "Beber 2L de agua",
-                        description = "Hábito diario",
-                        type = CalendarItemType.HABITO
-                    ),
-                    CalendarItem(
-                        date = today.plusDays(1),
-                        title = "Cita médica",
-                        description = "Consulta general",
-                        type = CalendarItemType.PERSONAL
-                    )
-                )
-            )
-        }
-    }
-
-    // Snackbar para mensajes
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-
-    // Estado del diálogo de nuevo evento
     var showAddDialog by remember { mutableStateOf(false) }
 
-    val monthName = currentMonth.month
-        .getDisplayName(TextStyle.FULL, Locale("es"))
-        .replaceFirstChar { it.uppercase() }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Scaffold(
-        containerColor = GradientEnd,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Calendario",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+    val dynamicBg = if (highContrast) Color.Black else GradientEnd
+    val dynamicPrimaryText = if (highContrast) Color.White else Color.White
+    val dynamicSecondaryText = if (highContrast) Color.LightGray else TextSecondary
+    val dynamicSelectedBg = if (highContrast) LinkGreen else ButtonPrimary.copy(alpha = 0.7f)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(dynamicBg)
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp, horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
+                Icon(Icons.Default.KeyboardArrowLeft, "Mes anterior", tint = dynamicPrimaryText)
+            }
+            Text(
+                text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("es")))
+                    .replaceFirstChar { it.titlecase(Locale.getDefault()) },
+                color = dynamicPrimaryText,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    // Aseguramos que el diálogo siempre abra con el día seleccionado actual
-                    showAddDialog = true
-                },
-                containerColor = LinkGreen
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar", tint = Color.Black)
+            IconButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
+                Icon(Icons.Default.KeyboardArrowRight, "Mes siguiente", tint = dynamicPrimaryText)
             }
         }
-    ) { padding ->
 
-        Column(
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceAround
         ) {
-
-            // -------------------------------------------------
-            // ENCABEZADO DEL MES
-            // -------------------------------------------------
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
-                    Icon(
-                        Icons.Default.KeyboardArrowLeft,
-                        contentDescription = "Mes anterior",
-                        tint = Color.White
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "$monthName ${currentMonth.year}",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp
-                    )
-                    Text(
-                        text = "Toca un día para ver tus pendientes",
-                        color = TextSecondary,
-                        fontSize = 13.sp
-                    )
-                }
-
-                IconButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
-                    Icon(
-                        Icons.Default.KeyboardArrowRight,
-                        contentDescription = "Mes siguiente",
-                        tint = Color.White
-                    )
-                }
+            val daysOfWeek = DayOfWeek.values().map { it.getDisplayName(TextStyle.SHORT, Locale("es")) }
+            daysOfWeek.forEach { day ->
+                Text(
+                    text = day.uppercase(),
+                    color = dynamicSecondaryText,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
+                )
             }
+        }
 
-            // -------------------------------------------------
-            // CABECERA DÍAS DE LA SEMANA
-            // -------------------------------------------------
-            val weekDays = listOf("L", "M", "X", "J", "V", "S", "D")
+        Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                weekDays.forEach {
-                    Text(
-                        text = it,
-                        color = TextSecondary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                }
-            }
+        val firstDayOfMonth = currentMonth.withDayOfMonth(1)
+        val lastDayOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
+        val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
+        val totalDays = 42
+        val dates = (1..totalDays).map {
+            val dayOffset = it - firstDayOfWeek - 1
+            firstDayOfMonth.plusDays(dayOffset.toLong())
+        }
 
-            Spacer(modifier = Modifier.height(6.dp))
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(7),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items(dates) { date ->
+                val day = date.dayOfMonth
+                val isSelected = date == selectedDate
+                val itemsOfDay = calendarItems.filter { it.date == date }
 
-            // -------------------------------------------------
-            // GRID DEL CALENDARIO
-            // -------------------------------------------------
-            val daysInMonth = currentMonth.lengthOfMonth()
-            val firstDayIndex =
-                (currentMonth.atDay(1).dayOfWeek.value + 6) % 7 // Para que Lunes sea 0
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { selectedDate = date }
+                        .background(
+                            if (isSelected) dynamicSelectedBg
+                            else Color.Transparent
+                        )
+                        .padding(top = 4.dp, bottom = 2.dp, start = 4.dp, end = 4.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(7),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(320.dp)
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalArrangement = Arrangement.SpaceAround
-            ) {
-
-                // espacios vacíos antes del día 1
-                items(firstDayIndex) {
-                    Box(modifier = Modifier.size(44.dp))
-                }
-
-                items(daysInMonth) { index ->
-                    val day = index + 1
-                    val date = currentMonth.atDay(day)
-                    val isSelected = date == selectedDate
-
-                    // Eventos de este día
-                    val itemsOfDay = calendarItems.filter { it.date == date }
-
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .clickable { selectedDate = date }
-                            .background(
-                                if (isSelected) ButtonPrimary.copy(alpha = 0.7f)
-                                else Color.Transparent
-                            )
-                            .padding(top = 4.dp, bottom = 2.dp, start = 4.dp, end = 4.dp),
-                        contentAlignment = Alignment.TopCenter
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
+                        Text(
+                            text = day.toString(),
+                            color = dynamicPrimaryText,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 17.sp
+                        )
 
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = day.toString(),
-                                color = Color.White,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 17.sp
-                            )
-
-                            // Puntos de eventos
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                itemsOfDay.take(3).forEach { item ->
-                                    val dotColor = when (item.type) {
-                                        CalendarItemType.ESTUDIO -> ButtonPrimary
-                                        CalendarItemType.HABITO -> LinkGreen
-                                        CalendarItemType.PERSONAL -> Color(0xFFFFD54F)
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(dotColor)
-                                    )
+                            itemsOfDay.take(3).forEach { item ->
+                                val dotColor = when (item.type) {
+                                    CalendarItemType.ESTUDIO -> ButtonPrimary
+                                    CalendarItemType.HABITO -> LinkGreen
+                                    CalendarItemType.PERSONAL -> Color(0xFFFFD54F)
                                 }
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(dotColor)
+                                )
                             }
                         }
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-            // -------------------------------------------------
-            // PANEL DE DETALLES DEL DÍA
-            // -------------------------------------------------
-            val detailFormatter = DateTimeFormatter.ofPattern("d 'de' MMMM", Locale("es"))
-            val itemsSelectedDay =
-                calendarItems.filter { it.date == selectedDate }.sortedBy { it.type.name }
+        val detailFormatter = DateTimeFormatter.ofPattern("d 'de' MMMM", Locale("es"))
+        val itemsSelectedDay =
+            calendarItems.filter { it.date == selectedDate }.sortedBy { it.type.name }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
 
+            Text(
+                text = "Pendientes para ${selectedDate.format(detailFormatter)}",
+                color = dynamicPrimaryText,
+                fontWeight = FontWeight.Bold,
+                fontSize = 19.sp
+            )
+
+            if (itemsSelectedDay.isEmpty()) {
+                Spacer(modifier = Modifier.height(14.dp))
                 Text(
-                    text = "Pendientes para ${selectedDate.format(detailFormatter)}",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 19.sp
+                    text = "No tienes nada registrado para este día.\nToca el botón + para agregar algo.",
+                    color = dynamicSecondaryText,
+                    fontSize = 14.sp
                 )
-
-                if (itemsSelectedDay.isEmpty()) {
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        text = "No tienes nada registrado para este día.\nToca el botón + para agregar algo.",
-                        color = TextSecondary,
-                        fontSize = 14.sp
-                    )
-                } else {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(itemsSelectedDay.size) { index ->
-                            val item = itemsSelectedDay[index]
-                            CalendarItemRow(item = item)
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
+            } else {
+                Spacer(modifier = Modifier.height(10.dp))
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(itemsSelectedDay) { item ->
+                        CalendarItemRow(item = item, highContrast = highContrast)
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
         }
     }
 
-    // -------------------------------------------------
-    // DIÁLOGO PARA AGREGAR EVENTO
-    // -------------------------------------------------
     if (showAddDialog) {
         AddCalendarItemDialog(
             initialDate = selectedDate,
@@ -366,23 +247,20 @@ fun CalendarioScreen(navController: NavController) {
     }
 }
 
-// ----------------------------------------------------------------------
-//  ROW PARA MOSTRAR UN EVENTO EN EL PANEL INFERIOR
-// ----------------------------------------------------------------------
-
 @Composable
-private fun CalendarItemRow(item: CalendarItem) {
+private fun CalendarItemRow(item: CalendarItem, highContrast: Boolean) {
     val chipColor = when (item.type) {
         CalendarItemType.ESTUDIO -> ButtonPrimary
         CalendarItemType.HABITO -> LinkGreen
         CalendarItemType.PERSONAL -> Color(0xFFFFD54F)
     }
+    val dynamicCardBg = if (highContrast) Color(0xFF2E2E2E) else ButtonPrimary.copy(alpha = 0.4f)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(ButtonPrimary.copy(alpha = 0.4f))
+            .background(dynamicCardBg)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -438,10 +316,6 @@ private fun CalendarItemRow(item: CalendarItem) {
         }
     }
 }
-
-// ----------------------------------------------------------------------
-//  DIÁLOGO PARA CREAR UN NUEVO EVENTO
-// ----------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -515,14 +389,12 @@ private fun AddCalendarItemDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Fecha (por ahora solo se muestra; si quieres luego integramos DatePicker)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    val formatter =
-                        DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale("es"))
+                    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale("es"))
                     Text(
                         "Fecha: ${selectedDate.format(formatter)}",
                         color = Color.White,
@@ -627,5 +499,3 @@ private fun CalendarTypeChip(
         )
     }
 }
-
-

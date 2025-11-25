@@ -6,9 +6,8 @@ import com.example.testapp.auth.UserRole
 
 @Entity(tableName = "users")
 data class User(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
-    val email: String,
-    val password: String, // In a real app, this should be a hash!
+    @PrimaryKey val email: String,
+    val nombre: String, // <-- CAMPO AÑADIDO
+    val password: String,
     val role: UserRole
 )

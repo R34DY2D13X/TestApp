@@ -1,12 +1,6 @@
 package com.example.testapp.splash
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,29 +23,34 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.testapp.R
+import com.example.testapp.ajustes.SettingsViewModel
 import com.example.testapp.ui.theme.GradientEnd
 import com.example.testapp.ui.theme.GradientStart
 import com.example.testapp.ui.theme.PrimaryTextColor
 import kotlinx.coroutines.delay
 
 @Composable
-fun SplashScreen(navController: NavController) {
-    // 1. Más tiempo en la transición
+fun SplashScreen(
+    navController: NavController,
+    settingsViewModel: SettingsViewModel = viewModel()
+) {
+    val settings by settingsViewModel.uiState.collectAsState()
+
     LaunchedEffect(key1 = true) {
-        delay(3500) // Aumentado a 3.5 segundos
-        navController.navigate("login") {
+        delay(3500)
+        val destination = if (settings.isLoggedIn) "menu" else "login"
+        navController.navigate(destination) {
             popUpTo("splash") { inclusive = true }
         }
     }
 
-    // 2. Configuración de animación mejorada
     val infiniteTransition = rememberInfiniteTransition(label = "logo animation")
 
-    // Animación de rotación (balanceo)
     val angle by infiniteTransition.animateFloat(
-        initialValue = -4f, // Un poco más de ángulo
+        initialValue = -4f,
         targetValue = 4f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 2200, easing = FastOutSlowInEasing),
@@ -58,7 +58,6 @@ fun SplashScreen(navController: NavController) {
         ), label = "logo rotation"
     )
 
-    // Nueva animación de escala (pulsación)
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.05f,
@@ -86,7 +85,7 @@ fun SplashScreen(navController: NavController) {
                 painter = painterResource(id = R.drawable.mainlogo),
                 contentDescription = "Logo de HabiCut, aplicación para mejorar hábitos de estudio y bienestar",
                 modifier = Modifier
-                    .size(220.dp) // 3. Logo aún más grande
+                    .size(220.dp)
                     .graphicsLayer { // 4. Aplicar ambas animaciones
                         rotationZ = angle
                         scaleX = scale

@@ -21,8 +21,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.testapp.R
+import com.example.testapp.ajustes.SettingsViewModel
 import com.example.testapp.ui.theme.CardBackgroundColor
 import com.example.testapp.ui.theme.DarkBackground
 import com.example.testapp.ui.theme.PrimaryTextColor
@@ -31,19 +33,28 @@ import com.example.testapp.ui.theme.PrimaryTextColor
 @Composable
 fun BienestarScreen(
     navController: NavController,
+    settingsViewModel: SettingsViewModel = viewModel(),
     onActionSelected: (String) -> Unit = {}
 ) {
+    val settings by settingsViewModel.uiState.collectAsState()
+    val fontSize = settings.fontSize
+    val highContrast = settings.highContrast
+
     var mood by remember { mutableStateOf<String?>(null) }
 
+    val dynamicBg = if (highContrast) Color.Black else DarkBackground
+    val dynamicCardBg = if (highContrast) Color(0xFF2E2E2E) else CardBackgroundColor.copy(alpha = 0.8f)
+    val dynamicPrimaryText = if (highContrast) Color.White else PrimaryTextColor
+
     Scaffold(
-        containerColor = DarkBackground,
+        containerColor = dynamicBg,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "Bienestar",
-                        color = PrimaryTextColor,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        color = dynamicPrimaryText,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.titleLarge.fontSize * fontSize)
                     )
                 },
                 navigationIcon = {
@@ -51,7 +62,7 @@ fun BienestarScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Regresar",
-                            tint = PrimaryTextColor
+                            tint = dynamicPrimaryText
                         )
                     }
                 },
@@ -59,12 +70,12 @@ fun BienestarScreen(
                     Icon(
                         imageVector = Icons.Filled.FavoriteBorder,
                         contentDescription = "Acción bienestar",
-                        tint = PrimaryTextColor,
+                        tint = dynamicPrimaryText,
                         modifier = Modifier.padding(end = 12.dp)
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = CardBackgroundColor.copy(alpha = 0.35f)
+                    containerColor = if (highContrast) Color(0xFF1A1A1A) else CardBackgroundColor.copy(alpha = 0.35f)
                 )
             )
         }
@@ -77,7 +88,7 @@ fun BienestarScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            ChipText("¿Cómo te encuentras hoy?")
+            ChipText("¿Cómo te encuentras hoy?", fontSize, dynamicPrimaryText, dynamicCardBg)
 
             Spacer(Modifier.height(12.dp))
 
@@ -88,39 +99,45 @@ fun BienestarScreen(
             ) {
                 MoodIcon(
                     selected = mood == "feliz",
-                    drawableResId = R.drawable.feliz
+                    drawableResId = R.drawable.feliz,
+                    highContrast = highContrast
                 ) { mood = "feliz" }
 
                 MoodIcon(
                     selected = mood == "meh",
-                    drawableResId = R.drawable.neh
+                    drawableResId = R.drawable.neh,
+                    highContrast = highContrast
                 ) { mood = "meh" }
 
                 MoodIcon(
                     selected = mood == "triste",
-                    drawableResId = R.drawable.triste
+                    drawableResId = R.drawable.triste,
+                    highContrast = highContrast
                 ) { mood = "triste" }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            ChipText("¿Por qué?")
+            ChipText("¿Por qué?", fontSize, dynamicPrimaryText, dynamicCardBg)
 
             Spacer(Modifier.height(12.dp))
 
             ActionCard(
                 title = "Respiracion Guiada",
-                drawableResId = R.drawable.respiracion
+                drawableResId = R.drawable.respiracion,
+                settings = settings
             ) { navController.navigate("respiracion") }
 
             ActionCard(
                 title = "No pantalla",
-                drawableResId = R.drawable.nopantalla
+                drawableResId = R.drawable.nopantalla,
+                settings = settings
             ) { navController.navigate("no_pantalla") }
 
             ActionCard(
                 title = "Paseo/Estiramiento",
-                drawableResId =  R.drawable.paseo
+                drawableResId =  R.drawable.paseo,
+                settings = settings
             ) { navController.navigate("estiramiento") }
 
             Spacer(Modifier.height(16.dp))
@@ -129,15 +146,15 @@ fun BienestarScreen(
 }
 
 @Composable
-private fun ChipText(text: String) {
+private fun ChipText(text: String, fontSize: Float, textColor: Color, cardBg: Color) {
     Text(
         text = text,
-        color = PrimaryTextColor,
+        color = textColor,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(CardBackgroundColor.copy(alpha = 0.35f))
+            .background(cardBg)
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = MaterialTheme.typography.titleMedium.fontSize * fontSize)
     )
 }
 
@@ -145,9 +162,10 @@ private fun ChipText(text: String) {
 private fun MoodIcon(
     selected: Boolean,
     drawableResId: Int,
+    highContrast: Boolean,
     onClick: () -> Unit
 ) {
-    val ring = if (selected) CardBackgroundColor else Color.Transparent
+    val ring = if (selected) (if (highContrast) Color.Yellow.copy(alpha = 0.8f) else CardBackgroundColor) else Color.Transparent
     Box(
         modifier = Modifier
             .size(72.dp)
@@ -168,15 +186,21 @@ private fun MoodIcon(
 private fun ActionCard(
     title: String,
     drawableResId: Int,
+    settings: com.example.testapp.ajustes.SettingsState,
     onClick: () -> Unit
 ) {
+    val fontSize = settings.fontSize
+    val highContrast = settings.highContrast
+    val dynamicCardBg = if (highContrast) Color(0xFF2E2E2E) else CardBackgroundColor.copy(alpha = 0.8f)
+    val dynamicPrimaryText = if (highContrast) Color.White else PrimaryTextColor
+
     Box(
         modifier = Modifier
             .padding(vertical = 8.dp)
-            .fillMaxWidth(0.45f) // todas tendrán el mismo ancho relativo
-            .height(150.dp) // altura fija para uniformidad
+            .fillMaxWidth(0.45f)
+            .height(150.dp)
             .clip(RoundedCornerShape(22.dp))
-            .background(CardBackgroundColor.copy(alpha = 0.8f))
+            .background(dynamicCardBg)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -187,11 +211,12 @@ private fun ActionCard(
         ) {
             Text(
                 text = title,
-                color = PrimaryTextColor,
+                color = dynamicPrimaryText,
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    lineHeight = 18.sp
+                    lineHeight = 18.sp * fontSize,
+                    fontSize = MaterialTheme.typography.titleSmall.fontSize * fontSize
                 )
             )
             Spacer(Modifier.height(10.dp))

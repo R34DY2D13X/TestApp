@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
@@ -48,37 +49,43 @@ private val motivationalPhrases = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TimerUI(onBack: () -> Unit = {}) {
+fun TimerUI(onBack: () -> Unit = {}, fontSize: Float, highContrast: Boolean) {
     val randomPhrase = remember { motivationalPhrases.random() }
     var isStudyTimeCompleted by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    val dynamicBg = if (highContrast) Color.Black else Color(0xFF252440)
+    val dynamicAppBarBg = if (highContrast) Color(0xFF1C1C1E) else Color(0xFFB0C4DE)
+    val dynamicAppBarContent = if (highContrast) Color.White else Color.White
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Enfoque", fontWeight = FontWeight.Bold) },
+                title = { Text("Enfoque", fontWeight = FontWeight.Bold, fontSize = 20.sp * fontSize) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver") } },
                 actions = { IconButton({}) { Icon(Icons.Filled.Psychology, "Concentración", modifier = Modifier.size(36.dp)) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFB0C4DE), titleContentColor = Color.White, navigationIconContentColor = Color.White, actionIconContentColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = dynamicAppBarBg, titleContentColor = dynamicAppBarContent, navigationIconContentColor = dynamicAppBarContent, actionIconContentColor = dynamicAppBarContent)
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = Color(0xFF252440)
+        containerColor = dynamicBg
     ) { innerPadding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(innerPadding).padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceAround
         ) {
-            Text(randomPhrase, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center, color = Color.White)
+            Text(randomPhrase, style = MaterialTheme.typography.headlineSmall.copy(fontSize = MaterialTheme.typography.headlineSmall.fontSize * fontSize), textAlign = TextAlign.Center, color = dynamicAppBarContent)
 
             TimerModule(
                 title = "Tiempo de estudio:",
                 initialTimeInMinutes = 25,
                 onTimerFinished = { isStudyTimeCompleted = true },
                 completionTitle = "¡Tiempo de estudio completado!",
-                completionMessage = "¡Buen trabajo! Ahora toma un merecido descanso."
+                completionMessage = "¡Buen trabajo! Ahora toma un merecido descanso.",
+                fontSize = fontSize,
+                highContrast = highContrast
             )
 
             Box(
@@ -98,7 +105,9 @@ fun TimerUI(onBack: () -> Unit = {}) {
                     isEnabled = isStudyTimeCompleted,
                     completionTitle = "¡Muy bien!",
                     completionMessage = "Ya terminaste de estudiar por hoy, puedes continuar con otros módulos o intentar estudiar de nuevo más tarde.",
-                    onCompletionAcknowledged = onBack
+                    onCompletionAcknowledged = onBack,
+                    fontSize = fontSize,
+                    highContrast = highContrast
                 )
             }
         }
@@ -113,7 +122,9 @@ fun TimerModule(
     onTimerFinished: () -> Unit = {},
     completionTitle: String,
     completionMessage: String,
-    onCompletionAcknowledged: () -> Unit = {}
+    onCompletionAcknowledged: () -> Unit = {},
+    fontSize: Float,
+    highContrast: Boolean
 ) {
     val initialTimeInSeconds = remember(initialTimeInMinutes) { TimeUnit.MINUTES.toSeconds(initialTimeInMinutes) }
     var timeLeftInSeconds by remember(initialTimeInMinutes) { mutableStateOf(initialTimeInSeconds) }
@@ -121,11 +132,14 @@ fun TimerModule(
     val timer = remember { mutableStateOf<CountDownTimer?>(null) }
     val context = LocalContext.current
     
-    // Usamos rememberUpdatedState para el callback para evitar problemas en closures
     val currentOnTimerFinished by rememberUpdatedState(onTimerFinished)
 
     val ringtone = remember { mutableStateOf<Ringtone?>(null) }
     var showCompletionDialog by remember { mutableStateOf(false) }
+
+    val dynamicPrimaryText = if (highContrast) Color.White else Color.White
+    val accentColor = if (highContrast) Color.Yellow else Color(0xFF64B5F6)
+    val buttonColor = if (isEnabled) accentColor else Color.Gray.copy(alpha = 0.5f)
 
     DisposableEffect(initialTimeInMinutes, isEnabled) {
         if (!isEnabled) {
@@ -147,29 +161,27 @@ fun TimerModule(
                 try { ringtone.value?.stop() } catch (e: Exception) {}
                 onCompletionAcknowledged()
             },
-            title = { Text(completionTitle, style = MaterialTheme.typography.headlineMedium) },
-            text = { Text(completionMessage, style = MaterialTheme.typography.bodyLarge) },
+            title = { Text(completionTitle, style = MaterialTheme.typography.headlineMedium.copy(fontSize = MaterialTheme.typography.headlineMedium.fontSize * fontSize)) },
+            text = { Text(completionMessage, style = MaterialTheme.typography.bodyLarge.copy(fontSize = MaterialTheme.typography.bodyLarge.fontSize * fontSize)) },
             confirmButton = {
                 Button(onClick = {
                     showCompletionDialog = false
                     try { ringtone.value?.stop() } catch (e: Exception) {}
                     onCompletionAcknowledged()
                 }) {
-                    Text("Aceptar")
+                    Text("Aceptar", fontSize = 14.sp * fontSize)
                 }
             }
         )
     }
 
     val contentAlpha = if (isEnabled) 1f else 0.5f
-    val activeColor = Color(0xFF64B5F6)
-    val buttonColor = if (isEnabled) activeColor else Color.Gray.copy(alpha = 0.5f)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.alpha(contentAlpha)
     ) {
-        Text(text = title, style = MaterialTheme.typography.titleLarge, color = Color.White, modifier = Modifier.padding(bottom = 8.dp))
+        Text(text = title, style = MaterialTheme.typography.titleLarge.copy(fontSize = MaterialTheme.typography.titleLarge.fontSize * fontSize), color = dynamicPrimaryText, modifier = Modifier.padding(bottom = 8.dp))
 
         Box(contentAlignment = Alignment.Center) {
             val progress = if (initialTimeInSeconds > 0) timeLeftInSeconds.toFloat() / initialTimeInSeconds.toFloat() else 0f
@@ -182,7 +194,7 @@ fun TimerModule(
             )
             Text(
                 text = formatTime(timeLeftInSeconds),
-                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = Color.White)
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, color = dynamicPrimaryText, fontSize = MaterialTheme.typography.headlineLarge.fontSize * fontSize)
             )
         }
 
@@ -217,7 +229,7 @@ fun TimerModule(
                                         showCompletionDialog = true
                                     } catch (e: Exception) { 
                                         e.printStackTrace()
-                                        showCompletionDialog = true // Mostrar diálogo aunque falle el sonido
+                                        showCompletionDialog = true
                                     }
                                 }
                             }.start()

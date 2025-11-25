@@ -3,13 +3,14 @@ package com.example.testapp.ajustes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,7 +19,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.example.testapp.ui.theme.ButtonPrimary
 import com.example.testapp.ui.theme.GradientEnd
 import com.example.testapp.ui.theme.LinkGreen
@@ -26,227 +27,166 @@ import com.example.testapp.ui.theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AjustesScreen(navController: NavController) {
+fun AjustesScreen(
+    navController: NavHostController,
+    settingsViewModel: SettingsViewModel
+) {
 
-    // -----------------------------
-    // ESTADOS
-    // -----------------------------
-    var fontSize by rememberSaveable { mutableStateOf(1f) }
-    var highContrast by rememberSaveable { mutableStateOf(false) }
-    var accessibilityMode by rememberSaveable { mutableStateOf(false) }
-
-    var notifHabitos by rememberSaveable { mutableStateOf(true) }
-    var notifSueno by rememberSaveable { mutableStateOf(true) }
-    var notifEstudios by rememberSaveable { mutableStateOf(false) }
-
-    var reminderTime by rememberSaveable { mutableStateOf("08:00 AM") }
-
+    val settings by settingsViewModel.uiState.collectAsState()
+    val currentUser by settingsViewModel.currentUser.collectAsState() // <-- OBSERVAR AL USUARIO REAL
     var showNameDialog by remember { mutableStateOf(false) }
-    var userName by rememberSaveable { mutableStateOf("Usuario") }
 
-    // -----------------------------
-    // CONFIGURACIONES DINÁMICAS
-    // -----------------------------
+    val dynamicTextColor = if (settings.highContrast) Color.White else Color.White.copy(alpha = 0.9f)
+    val dynamicSecondary = if (settings.highContrast) Color.Yellow else TextSecondary
+    val cardBg = if (settings.highContrast) Color(0xFF1A1A1A) else ButtonPrimary.copy(alpha = 0.35f)
+    val fontSize = settings.fontSize
+    val dynamicBg = if (settings.highContrast) Color.Black else GradientEnd
 
-    val dynamicTextColor = if (highContrast) Color.White else Color.White.copy(alpha = 0.9f)
-    val dynamicSecondary = if (highContrast) Color.Yellow else TextSecondary
-    val cardBg = if (highContrast) Color(0xFF1A1A1A) else ButtonPrimary.copy(alpha = 0.35f)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(dynamicBg)
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
 
-    val baseFont = (16.sp * fontSize)
-    val subtitleFont = (13.sp * fontSize)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 20.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(55.dp)
+                    .clip(CircleShape)
+                    .background(LinkGreen)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                // --- CAMBIO: MOSTRAR EL NOMBRE REAL DE LA BASE DE DATOS ---
+                Text(
+                    text = currentUser?.nombre ?: "Usuario", // <-- USA EL NOMBRE DEL USUARIO ACTUAL
+                    color = Color.White,
+                    fontSize = 20.sp * fontSize,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Toque para cambiar nombre",
+                    color = dynamicSecondary,
+                    fontSize = 13.sp * fontSize,
+                    modifier = Modifier.clickable { showNameDialog = true }
+                )
+            }
+        }
 
-    Scaffold(
-        containerColor = GradientEnd,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text("Ajustes", color = Color.White, fontSize = 20.sp * fontSize)
+        AjustesHeader("Personalización", dynamicSecondary, fontSize)
+        AjustesCard(cardBg) {
+            AjusteOpcion(
+                icon = Icons.Default.TextFields,
+                title = "Tamaño de letra",
+                subtitle = when {
+                    fontSize < 1f -> "Pequeño"
+                    fontSize == 1f -> "Normal"
+                    else -> "Grande"
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                textColor = dynamicTextColor,
+                subtitleColor = dynamicSecondary,
+                fontSize = fontSize,
+                onClick = {}
+            )
+            Slider(
+                value = fontSize,
+                onValueChange = { settingsViewModel.updateFontSize(it) },
+                valueRange = 0.8f..1.6f,
+                colors = SliderDefaults.colors(thumbColor = LinkGreen, activeTrackColor = LinkGreen)
+            )
+            AjusteSwitch(
+                icon = Icons.Default.Contrast,
+                title = "Alto contraste",
+                checked = settings.highContrast,
+                textColor = dynamicTextColor,
+                fontSize = fontSize,
+                onCheckedChange = { settingsViewModel.updateHighContrast(it) }
+            )
+            AjusteSwitch(
+                icon = Icons.Default.AccessibilityNew,
+                title = "Modo accesible",
+                checked = settings.accessibilityMode,
+                textColor = dynamicTextColor,
+                fontSize = fontSize,
+                onCheckedChange = { settingsViewModel.updateAccessibilityMode(it) }
             )
         }
-    ) { padding ->
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-        ) {
+        Spacer(modifier = Modifier.height(20.dp))
 
-            // -----------------------------
-            // PERFIL DEL USUARIO
-            // -----------------------------
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 20.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(55.dp)
-                        .clip(CircleShape)
-                        .background(LinkGreen)
-                )
+        AjustesHeader("Notificaciones", dynamicSecondary, fontSize)
+        AjustesCard(cardBg) {
+            AjusteSwitch(
+                icon = Icons.Default.CheckCircle,
+                title = "Hábitos diarios",
+                checked = settings.notifHabitos,
+                textColor = dynamicTextColor,
+                fontSize = fontSize,
+                onCheckedChange = { settingsViewModel.updateNotifHabitos(it) }
+            )
+            AjusteSwitch(
+                icon = Icons.Default.NightsStay,
+                title = "Sueño",
+                checked = settings.notifSueno,
+                textColor = dynamicTextColor,
+                fontSize = fontSize,
+                onCheckedChange = { settingsViewModel.updateNotifSueno(it) }
+            )
+            AjusteSwitch(
+                icon = Icons.Default.School,
+                title = "Plan de estudios",
+                checked = settings.notifEstudios,
+                textColor = dynamicTextColor,
+                fontSize = fontSize,
+                onCheckedChange = { settingsViewModel.updateNotifEstudios(it) }
+            )
+            AjusteOpcion(
+                icon = Icons.Default.AccessTime,
+                title = "Horario de recordatorios",
+                subtitle = settings.reminderTime,
+                textColor = dynamicTextColor,
+                subtitleColor = dynamicSecondary,
+                fontSize = fontSize,
+                onClick = {}
+            )
+        }
 
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    Text(
-                        text = userName,
-                        color = Color.White,
-                        fontSize = 20.sp * fontSize,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = "Toque para cambiar nombre",
-                        color = dynamicSecondary,
-                        fontSize = 13.sp * fontSize,
-                        modifier = Modifier.clickable { showNameDialog = true }
-                    )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = {
+                settingsViewModel.updateLoginState(false)
+                navController.navigate("login") { 
+                    popUpTo(navController.graph.id) { inclusive = true }
                 }
-            }
-
-            // -----------------------------
-            // PERSONALIZACIÓN
-            // -----------------------------
-            AjustesHeader("Personalización", dynamicSecondary, fontSize)
-
-            AjustesCard(cardBg) {
-
-                AjusteOpcion(
-                    icon = Icons.Default.TextFields,
-                    title = "Tamaño de letra",
-                    subtitle = when {
-                        fontSize < 1f -> "Pequeño"
-                        fontSize == 1f -> "Normal"
-                        else -> "Grande"
-                    },
-                    textColor = dynamicTextColor,
-                    subtitleColor = dynamicSecondary,
-                    fontSize = fontSize
-                ) {}
-
-                Slider(
-                    value = fontSize,
-                    onValueChange = { fontSize = it },
-                    valueRange = 0.8f..1.6f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = LinkGreen,
-                        activeTrackColor = LinkGreen
-                    )
-                )
-
-                AjusteSwitch(
-                    icon = Icons.Default.Contrast,
-                    title = "Alto contraste",
-                    checked = highContrast,
-                    textColor = dynamicTextColor,
-                    fontSize = fontSize,
-                    onCheckedChange = { highContrast = it }
-                )
-
-                AjusteSwitch(
-                    icon = Icons.Default.AccessibilityNew,
-                    title = "Modo accesible",
-                    checked = accessibilityMode,
-                    textColor = dynamicTextColor,
-                    fontSize = fontSize,
-                    onCheckedChange = { accessibilityMode = it }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // -----------------------------
-            // NOTIFICACIONES
-            // -----------------------------
-            AjustesHeader("Notificaciones", dynamicSecondary, fontSize)
-
-            AjustesCard(cardBg) {
-                AjusteSwitch(
-                    icon = Icons.Default.CheckCircle,
-                    title = "Hábitos diarios",
-                    checked = notifHabitos,
-                    textColor = dynamicTextColor,
-                    fontSize = fontSize,
-                    onCheckedChange = { notifHabitos = it }
-                )
-
-                AjusteSwitch(
-                    icon = Icons.Default.NightsStay,
-                    title = "Sueño",
-                    checked = notifSueno,
-                    textColor = dynamicTextColor,
-                    fontSize = fontSize,
-                    onCheckedChange = { notifSueno = it }
-                )
-
-                AjusteSwitch(
-                    icon = Icons.Default.School,
-                    title = "Plan de estudios",
-                    checked = notifEstudios,
-                    textColor = dynamicTextColor,
-                    fontSize = fontSize,
-                    onCheckedChange = { notifEstudios = it }
-                )
-
-                AjusteOpcion(
-                    icon = Icons.Default.AccessTime,
-                    title = "Horario de recordatorios",
-                    subtitle = reminderTime,
-                    textColor = dynamicTextColor,
-                    subtitleColor = dynamicSecondary,
-                    fontSize = fontSize
-                ) {}
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // -----------------------------
-            // CUENTA
-            // -----------------------------
-            AjustesHeader("Cuenta", dynamicSecondary, fontSize)
-
-            AjustesCard(cardBg) {
-                AjusteOpcion(
-                    icon = Icons.Default.Person,
-                    title = "Cambiar nombre",
-                    subtitle = userName,
-                    textColor = dynamicTextColor,
-                    subtitleColor = dynamicSecondary,
-                    fontSize = fontSize
-                ) { showNameDialog = true }
-
-                AjusteOpcion(
-                    icon = Icons.Default.Info,
-                    title = "Versión",
-                    subtitle = "1.0.0",
-                    textColor = dynamicTextColor,
-                    subtitleColor = dynamicSecondary,
-                    fontSize = fontSize
-                ) {}
-            }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.8f))
+        ) {
+            Text("Cerrar Sesión", color = Color.White)
         }
     }
 
+    // --- CAMBIO: INICIALIZAR EL DIÁLOGO CON EL NOMBRE REAL ---
     if (showNameDialog) {
+        var nombre by remember { mutableStateOf(currentUser?.nombre ?: "") }
         DialogCambiarNombre(
-            initial = userName,
+            nombre = nombre,
+            onNombreChange = { },
             onDismiss = { showNameDialog = false },
             onSave = {
-                userName = it
+                settingsViewModel.updateUserName(nombre)
                 showNameDialog = false
             }
         )
     }
 }
-
-/* ------------------------------
-      COMPONENTES PERSONALIZADOS
------------------------------- */
 
 @Composable
 fun AjustesHeader(titulo: String, color: Color, scale: Float) {
@@ -339,15 +279,17 @@ fun AjusteSwitch(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DialogCambiarNombre(initial: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
-
-    var nombre by remember { mutableStateOf(initial) }
-
+fun DialogCambiarNombre(
+    nombre: String,
+    onNombreChange: (String) -> Unit,
+    onDismiss: () -> Unit, 
+    onSave: () -> Unit
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             Button(
-                onClick = { onSave(nombre) },
+                onClick = onSave,
                 colors = ButtonDefaults.buttonColors(containerColor = LinkGreen)
             ) {
                 Text("Guardar", color = Color.Black)
@@ -362,7 +304,7 @@ fun DialogCambiarNombre(initial: String, onDismiss: () -> Unit, onSave: (String)
         text = {
             OutlinedTextField(
                 value = nombre,
-                onValueChange = { nombre = it },
+                onValueChange = onNombreChange,
                 label = { Text("Nombre") },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(

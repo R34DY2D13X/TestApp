@@ -17,6 +17,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,8 +26,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.testapp.ui.theme.* // Import all colors
+import com.example.testapp.ajustes.SettingsViewModel
+import com.example.testapp.ui.theme.*
 
 enum class EstadoPlan { POR_COMPLETAR, COMPLETADO, NO_COMPLETADO }
 
@@ -96,17 +101,27 @@ object SueñoRepository {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SueñoScreen(navController: NavController) {
+fun SueñoScreen(
+    navController: NavController,
+    settingsViewModel: SettingsViewModel = viewModel()
+) {
     val planesAgrupados = remember { SueñoRepository.obtenerPlanes().groupBy { it.estado } }
+    val settings by settingsViewModel.uiState.collectAsState()
+    val fontSize = settings.fontSize
+    val highContrast = settings.highContrast
+
+    val dynamicBg = if (highContrast) Color.Black else GradientEnd
+    val dynamicPrimaryText = if (highContrast) Color.White else PrimaryTextColor
+    val dynamicSecondaryText = if (highContrast) Color.LightGray else TextSecondary
 
     Scaffold(
-        containerColor = GradientEnd, // Nuevo fondo oscuro
+        containerColor = dynamicBg,
         topBar = {
             TopAppBar(
-                title = { Text("Planes de Sueño", color = Color.White) },
+                title = { Text("Planes de Sueño", color = dynamicPrimaryText, fontSize = 20.sp * fontSize) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = dynamicPrimaryText)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -119,10 +134,10 @@ fun SueñoScreen(navController: NavController) {
         ) {
             planesAgrupados.forEach { (estado, planes) ->
                 item {
-                    Header(texto = estado.name.replace('_', ' '))
+                    Header(texto = estado.name.replace('_', ' '), fontSize = fontSize, textColor = dynamicSecondaryText)
                 }
                 items(planes) { plan ->
-                    PlanCard(plan = plan, onClick = {
+                    PlanCard(plan = plan, settings = settings, onClick = {
                         navController.navigate("plan_detalle/${plan.id}")
                     })
                     Spacer(Modifier.height(16.dp))
@@ -133,40 +148,50 @@ fun SueñoScreen(navController: NavController) {
 }
 
 @Composable
-private fun Header(texto: String) {
+private fun Header(texto: String, fontSize: Float, textColor: Color) {
     Text(
         text = texto,
-        style = MaterialTheme.typography.titleMedium,
-        color = TextSecondary, // Color de texto secundario
+        style = MaterialTheme.typography.titleMedium.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize * fontSize),
+        color = textColor,
         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PlanCard(plan: PlanDeSueño, onClick: () -> Unit) {
+private fun PlanCard(
+    plan: PlanDeSueño, 
+    settings: com.example.testapp.ajustes.SettingsState,
+    onClick: () -> Unit
+) {
+    val fontSize = settings.fontSize
+    val highContrast = settings.highContrast
+    val dynamicCardBg = if (highContrast) Color(0xFF2E2E2E) else ButtonPrimary
+    val dynamicPrimaryText = if (highContrast) Color.White else PrimaryTextColor
+    val accentColor = if (highContrast) Color.Yellow else LinkGreen
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(4.dp, RoundedCornerShape(12.dp)),
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = ButtonPrimary) // Nuevo color de fondo para la tarjeta
+        colors = CardDefaults.cardColors(containerColor = dynamicCardBg)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(plan.nombre, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(plan.nombre, style = MaterialTheme.typography.titleLarge.copy(fontSize = MaterialTheme.typography.titleLarge.fontSize * fontSize), fontWeight = FontWeight.Bold, color = dynamicPrimaryText)
                 Spacer(Modifier.height(4.dp))
-                Text(plan.descripcion, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.9f))
+                Text(plan.descripcion, style = MaterialTheme.typography.bodyMedium.copy(fontSize = MaterialTheme.typography.bodyMedium.fontSize * fontSize), color = dynamicPrimaryText.copy(alpha = 0.9f))
             }
             if (plan.estado == EstadoPlan.COMPLETADO) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle, 
                     contentDescription = "Completado", 
-                    tint = LinkGreen, // Nuevo color verde de acento
+                    tint = accentColor,
                     modifier = Modifier.size(32.dp).padding(start = 8.dp)
                 )
             }
