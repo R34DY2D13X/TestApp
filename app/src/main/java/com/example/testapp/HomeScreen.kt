@@ -15,6 +15,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,6 +24,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.testapp.ajustes.SettingsViewModel
+import com.example.testapp.ui.theme.DarkBackground
+import com.example.testapp.ui.theme.PrimaryTextColor
 import kotlinx.coroutines.delay
 
 // Definimos los grupos de imágenes
@@ -57,37 +63,42 @@ private val placeholderColors = listOf(Color(0xFF64B5F6), Color(0xFFB0C4DE), Col
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun HomeScreen() {
-    // Lógica Random: Selecciona un grupo al azar cada vez que se carga la pantalla
+fun HomeScreen(settingsViewModel: SettingsViewModel = viewModel()) {
+    val settings by settingsViewModel.uiState.collectAsState()
+    val fontSize = settings.fontSize
+    val highContrast = settings.highContrast
+
+    val dynamicBg = if (highContrast) Color.Black else DarkBackground
+    val dynamicPrimaryText = if (highContrast) Color.White else PrimaryTextColor
+
     val selectedGroup = remember {
         if (allGroups.isNotEmpty()) allGroups.random() else emptyList()
     }
 
-    val displayImages = if (selectedGroup.isNotEmpty()) selectedGroup else emptyList()
+    val displayImages = selectedGroup
     val pageCount = if (displayImages.isNotEmpty()) displayImages.size else placeholderColors.size
     
     val pagerState = rememberPagerState(pageCount = { pageCount })
 
-    // Desplazamiento automático (1 por 1)
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(4000) // Velocidad del pase
-            pagerState.animateScrollToPage((pagerState.currentPage + 1) % pagerState.pageCount)
+    LaunchedEffect(pagerState.pageCount) {
+        if (pagerState.pageCount > 0) {
+            while (true) {
+                delay(4000)
+                pagerState.animateScrollToPage((pagerState.currentPage + 1) % pagerState.pageCount)
+            }
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // --- BARRA DE PRESENTACIÓN (CARRUSEL) ---
+    Column(modifier = Modifier.fillMaxSize().background(dynamicBg)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(250.dp) // Altura de la barra
+                .height(250.dp)
         ) {
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
-                // Imagen limpia, sin textos ni capas oscuras encima
                 if (displayImages.isNotEmpty()) {
                     Image(
                         painter = painterResource(id = displayImages[page]),
@@ -105,7 +116,6 @@ fun HomeScreen() {
             }
         }
 
-        // --- RESTO DEL CONTENIDO ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -114,8 +124,8 @@ fun HomeScreen() {
         ) {
             Text(
                 text = "Aquí irá el resto de tu contenido...",
-                color = Color.Gray,
-                fontSize = 18.sp,
+                color = dynamicPrimaryText,
+                fontSize = 18.sp * fontSize,
                 modifier = Modifier.align(Alignment.Center)
             )
         }

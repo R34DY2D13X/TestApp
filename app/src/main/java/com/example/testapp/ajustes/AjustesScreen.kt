@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,7 +34,7 @@ fun AjustesScreen(
 ) {
 
     val settings by settingsViewModel.uiState.collectAsState()
-    val currentUser by settingsViewModel.currentUser.collectAsState() // <-- OBSERVAR AL USUARIO REAL
+    val currentUser by settingsViewModel.currentUser.collectAsState(initial = null)
     var showNameDialog by remember { mutableStateOf(false) }
 
     val dynamicTextColor = if (settings.highContrast) Color.White else Color.White.copy(alpha = 0.9f)
@@ -64,9 +65,8 @@ fun AjustesScreen(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
-                // --- CAMBIO: MOSTRAR EL NOMBRE REAL DE LA BASE DE DATOS ---
                 Text(
-                    text = currentUser?.nombre ?: "Usuario", // <-- USA EL NOMBRE DEL USUARIO ACTUAL
+                    text = currentUser?.nombre ?: "Cargando...",
                     color = Color.White,
                     fontSize = 20.sp * fontSize,
                     fontWeight = FontWeight.Bold
@@ -173,12 +173,11 @@ fun AjustesScreen(
         }
     }
 
-    // --- CAMBIO: INICIALIZAR EL DIÁLOGO CON EL NOMBRE REAL ---
     if (showNameDialog) {
         var nombre by remember { mutableStateOf(currentUser?.nombre ?: "") }
         DialogCambiarNombre(
             nombre = nombre,
-            onNombreChange = { },
+            onNombreChange = { nombre = it },
             onDismiss = { showNameDialog = false },
             onSave = {
                 settingsViewModel.updateUserName(nombre)
@@ -237,7 +236,7 @@ fun AjusteOpcion(
             Text(subtitle, color = subtitleColor, fontSize = 13.sp * fontSize)
         }
 
-        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = subtitleColor)
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = subtitleColor)
     }
 }
 

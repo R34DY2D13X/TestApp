@@ -7,7 +7,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,19 +15,30 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.testapp.ajustes.SettingsViewModel
 import com.example.testapp.ui.theme.DarkBackground
 import com.example.testapp.ui.theme.CardBackgroundColor
 import com.example.testapp.ui.theme.PrimaryTextColor
 import kotlinx.coroutines.delay
 
 @Composable
-fun RespiracionScreen(navController: NavController) {
+fun RespiracionScreen(
+    navController: NavController,
+    settingsViewModel: SettingsViewModel = viewModel()
+) {
+    val settings by settingsViewModel.uiState.collectAsState()
+    val fontSize = settings.fontSize
+    val highContrast = settings.highContrast
+
+    val dynamicBg = if (highContrast) Color.Black else DarkBackground
+    val dynamicPrimaryText = if (highContrast) Color.White else PrimaryTextColor
+    val dynamicCardBg = if (highContrast) Color(0xFF1C1C1E) else CardBackgroundColor
 
     var estado by remember { mutableStateOf("Inhala") }
     var comenzar by remember { mutableStateOf(false) }
 
-    // Valor animado para el círculo
     val escalaObjetivo =
         when (estado) {
             "Inhala" -> 1.3f
@@ -43,7 +53,6 @@ fun RespiracionScreen(navController: NavController) {
         label = "animacionRespiracion"
     )
 
-    // Control del ciclo
     LaunchedEffect(comenzar) {
         if (comenzar) {
             while (comenzar) {
@@ -62,7 +71,7 @@ fun RespiracionScreen(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground),
+            .background(dynamicBg),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -71,28 +80,27 @@ fun RespiracionScreen(navController: NavController) {
 
             Text(
                 text = "Ejercicio de respiración guiada",
-                color = PrimaryTextColor,
-                fontSize = 20.sp,
+                color = dynamicPrimaryText,
+                fontSize = 20.sp * fontSize,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(bottom = 20.dp)
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Círculo animado
             Box(
                 modifier = Modifier
                     .size(180.dp)
                     .scale(escala)
-                    .background(CardBackgroundColor.copy(alpha = 0.8f), CircleShape)
+                    .background(dynamicCardBg.copy(alpha = 0.8f), CircleShape)
             )
 
             Spacer(modifier = Modifier.height(25.dp))
 
             Text(
                 text = estado,
-                color = PrimaryTextColor,
-                fontSize = 26.sp,
+                color = dynamicPrimaryText,
+                fontSize = 26.sp * fontSize,
                 fontWeight = FontWeight.Bold
             )
 
@@ -100,12 +108,12 @@ fun RespiracionScreen(navController: NavController) {
 
             Button(
                 onClick = { comenzar = true },
-                colors = ButtonDefaults.buttonColors(containerColor = CardBackgroundColor),
+                colors = ButtonDefaults.buttonColors(containerColor = dynamicCardBg),
                 modifier = Modifier
                     .width(160.dp)
                     .height(50.dp)
             ) {
-                Text("Iniciar", color = PrimaryTextColor, fontSize = 18.sp)
+                Text("Iniciar", color = dynamicPrimaryText, fontSize = 18.sp * fontSize)
             }
 
             Spacer(modifier = Modifier.height(15.dp))
@@ -117,7 +125,7 @@ fun RespiracionScreen(navController: NavController) {
                     .width(160.dp)
                     .height(50.dp)
             ) {
-                Text("Detener", color = Color.White, fontSize = 18.sp)
+                Text("Detener", color = Color.White, fontSize = 18.sp * fontSize)
             }
 
             Spacer(modifier = Modifier.height(15.dp))
@@ -129,7 +137,7 @@ fun RespiracionScreen(navController: NavController) {
                     .width(160.dp)
                     .height(50.dp)
             ) {
-                Text("Regresar", color = Color.White, fontSize = 18.sp)
+                Text("Regresar", color = Color.White, fontSize = 18.sp * fontSize)
             }
         }
     }

@@ -11,8 +11,10 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.testapp.MyApplication
-import com.example.testapp.data.db.User
+import com.example.testapp.data.User
+import com.example.testapp.data.UserRepository
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -28,9 +30,8 @@ object PrefKeys {
     val NOTIF_SUENO = booleanPreferencesKey("notif_sueno")
     val NOTIF_ESTUDIOS = booleanPreferencesKey("notif_estudios")
     val REMINDER_TIME = stringPreferencesKey("reminder_time")
-    val USER_NAME = stringPreferencesKey("user_name") // Deprecated, but keep for migration
     val USER_LOGGED_IN = booleanPreferencesKey("user_logged_in")
-    val LOGGED_IN_USER_EMAIL = stringPreferencesKey("logged_in_user_email") // <-- NUEVA CLAVE
+    val LOGGED_IN_USER_EMAIL = stringPreferencesKey("logged_in_user_email")
 }
 
 data class SettingsState(
@@ -42,28 +43,48 @@ data class SettingsState(
     val notifEstudios: Boolean = false,
     val reminderTime: String = "08:00 AM",
     val isLoggedIn: Boolean = false,
-    val userEmail: String? = null // <-- NUEVO ESTADO
+    val userEmail: String? = null
 )
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val dataStore = getApplication<Application>().applicationContext.dataStore
-    private val userDao = (application as MyApplication).database.userDao()
+    private val userRepository = UserRepository()
+    private val auth = FirebaseAuth.getInstance()
 
     private val _uiState = MutableStateFlow(SettingsState())
     val uiState = _uiState.asStateFlow()
     
-    // Flow para el usuario actual
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser = _currentUser.asStateFlow()
+
+    private var userListener: ValueEventListener? = null
+    private var listeningForUserId: String? = null
 
     init {
         viewModelScope.launch {
             val initialState = loadSettings()
             _uiState.value = initialState
-            // Cargar el usuario si hay un email guardado
-            initialState.userEmail?.let { email ->
-                _currentUser.value = userDao.getUserByEmail(email)
+
+            auth.addAuthStateListener { firebaseAuth ->
+                val firebaseUser = firebaseAuth.currentUser
+
+                userListener?.let { listener ->
+                    listeningForUserId?.let { userId ->
+                        userRepository.removeAuthStateListener(userId, listener)
+                    }
+                }
+                userListener = null
+                listeningForUserId = null
+
+                if (firebaseUser != null) {
+                    listeningForUserId = firebaseUser.uid
+                    userListener = userRepository.addAuthStateListener(firebaseUser.uid) { user ->
+                        _currentUser.value = user
+                    }
+                } else {
+                    _currentUser.value = null
+                }
             }
         }
     }
@@ -94,20 +115,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 }
             }
             _uiState.value = _uiState.value.copy(userEmail = email)
-            _currentUser.value = email?.let { userDao.getUserByEmail(it) }
         }
     }
 
     fun updateUserName(newName: String) {
-        viewModelScope.launch {
-            val currentUserEmail = _uiState.value.userEmail
-            if (currentUserEmail != null) {
-                val user = userDao.getUserByEmail(currentUserEmail)
-                if (user != null) {
-                    userDao.insertUser(user.copy(nombre = newName))
-                    _currentUser.value = userDao.getUserByEmail(currentUserEmail) // Recargar
-                }
-            }
+        val user = _currentUser.value
+        if (user != null) {
+            val updatedUser = user.copy(nombre = newName)
+            userRepository.insertUser(updatedUser)
         }
     }
 
@@ -117,6 +132,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             _uiState.value = _uiState.value.copy(isLoggedIn = loggedIn)
             if (!loggedIn) {
                 updateUserEmail(null)
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        userListener?.let { listener ->
+            listeningForUserId?.let { userId ->
+                userRepository.removeAuthStateListener(userId, listener)
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.example.testapp.login
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,19 +19,21 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,15 +49,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.testapp.MyApplication
 import com.example.testapp.ajustes.SettingsViewModel
-import com.example.testapp.auth.UserData
 import com.example.testapp.ui.theme.ButtonPrimary
 import com.example.testapp.ui.theme.GradientEnd
 import com.example.testapp.ui.theme.LinkGreen
 import com.example.testapp.ui.theme.PrimaryTextColor
 import com.example.testapp.ui.theme.TextSecondary
-import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,16 +66,26 @@ fun LoginScreen(
     settingsViewModel: SettingsViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val database = (context.applicationContext as MyApplication).database
-    val userDao = database.userDao()
-    val coroutineScope = rememberCoroutineScope()
+    val auth = FirebaseAuth.getInstance()
+
+    val settings by settingsViewModel.uiState.collectAsState()
+    val fontSize = settings.fontSize
+    val highContrast = settings.highContrast
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
 
-    Surface(color = GradientEnd, modifier = Modifier.fillMaxSize()) {
+    val dynamicPrimaryText = if (highContrast) Color.White else PrimaryTextColor
+    val dynamicSecondaryText = if (highContrast) Color.Yellow else TextSecondary
+    val dynamicBorder = if (highContrast) Color.White else ButtonPrimary
+    val dynamicUnfocusedBorder = if (highContrast) Color.Gray else Color.Gray
+    val dynamicLabel = if (highContrast) Color.Yellow else ButtonPrimary
+
+    Surface(color = if (highContrast) Color.Black else GradientEnd, modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -83,14 +96,14 @@ fun LoginScreen(
             Text(
                 text = "¡Bienvenido a HabiCut!",
                 color = Color.White,
-                fontSize = 24.sp,
+                fontSize = 24.sp * fontSize,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Inicia sesión para continuar",
-                color = TextSecondary,
-                fontSize = 16.sp
+                color = dynamicSecondaryText,
+                fontSize = 16.sp * fontSize
             )
             Spacer(modifier = Modifier.height(48.dp))
 
@@ -101,13 +114,13 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ButtonPrimary,
-                    unfocusedBorderColor = Color.Gray,
-                    focusedLabelColor = ButtonPrimary,
-                    unfocusedLabelColor = Color.Gray,
-                    focusedTextColor = PrimaryTextColor,
-                    unfocusedTextColor = PrimaryTextColor,
-                    cursorColor = ButtonPrimary
+                    focusedBorderColor = dynamicBorder,
+                    unfocusedBorderColor = dynamicUnfocusedBorder,
+                    focusedLabelColor = dynamicLabel,
+                    unfocusedLabelColor = dynamicSecondaryText,
+                    focusedTextColor = dynamicPrimaryText,
+                    unfocusedTextColor = dynamicPrimaryText,
+                    cursorColor = dynamicBorder
                 )
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -128,13 +141,13 @@ fun LoginScreen(
                     }
                 },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ButtonPrimary,
-                    unfocusedBorderColor = Color.Gray,
-                    focusedLabelColor = ButtonPrimary,
-                    unfocusedLabelColor = Color.Gray,
-                    focusedTextColor = PrimaryTextColor,
-                    unfocusedTextColor = PrimaryTextColor,
-                    cursorColor = ButtonPrimary
+                    focusedBorderColor = dynamicBorder,
+                    unfocusedBorderColor = dynamicUnfocusedBorder,
+                    focusedLabelColor = dynamicLabel,
+                    unfocusedLabelColor = dynamicSecondaryText,
+                    focusedTextColor = dynamicPrimaryText,
+                    unfocusedTextColor = dynamicPrimaryText,
+                    cursorColor = dynamicBorder
                 )
             )
 
@@ -147,43 +160,50 @@ fun LoginScreen(
                     onCheckedChange = { rememberMe = it },
                     colors = CheckboxDefaults.colors(checkedColor = LinkGreen, checkmarkColor = Color.Black)
                 )
-                Text("Mantener sesión iniciada", color = TextSecondary, fontSize = 14.sp)
+                Text("Mantener sesión iniciada", color = dynamicSecondaryText, fontSize = 14.sp * fontSize)
             }
 
             errorMessage?.let {
-                Text(text = it, color = Color.Red, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Text(text = it, color = Color.Red, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(), fontSize = 14.sp * fontSize)
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        val user = userDao.getUserByEmail(email)
-                        if (user == null) {
-                            errorMessage = "Aun no tienes una cuenta, inicia tu registro"
-                        } else if (user.password != password) { // In a real app, compare hashed passwords
-                            errorMessage = "Contraseña incorrecta"
-                        } else {
-                            // Login successful
-                            UserData.role = user.role
-                            settingsViewModel.updateUserEmail(user.email) // <-- EMAIL GUARDADO
-                            if (rememberMe) {
-                                settingsViewModel.updateLoginState(true)
+            if (isLoading) {
+                CircularProgressIndicator(color = dynamicPrimaryText)
+            } else {
+                Button(
+                    onClick = {
+                        isLoading = true
+                        auth.signInWithEmailAndPassword(email, password)
+                            .addOnCompleteListener { task ->
+                                isLoading = false
+                                if (task.isSuccessful) {
+                                    settingsViewModel.updateUserEmail(email)
+                                    if (rememberMe) {
+                                        settingsViewModel.updateLoginState(true)
+                                    }
+                                    Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
+                                    navController.navigate("menu") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                } else {
+                                    errorMessage = when (task.exception) {
+                                        is FirebaseAuthInvalidUserException -> "No se encontró un usuario con este correo."
+                                        is FirebaseAuthInvalidCredentialsException -> "Contraseña incorrecta."
+                                        else -> "Error en el inicio de sesión: ${task.exception?.message}"
+                                    }
+                                }
                             }
-                            navController.navigate("menu") {
-                                popUpTo("login") { inclusive = true }
-                            }
-                        }
-                    }
-                },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp)),
-                colors = ButtonDefaults.buttonColors(containerColor = ButtonPrimary)
-            ) {
-                Text("Iniciar Sesión", color = Color.White, fontSize = 16.sp)
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp)),
+                    colors = ButtonDefaults.buttonColors(containerColor = ButtonPrimary)
+                ) {
+                    Text("Iniciar Sesión", color = Color.White, fontSize = 16.sp * fontSize)
+                }
             }
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -192,7 +212,8 @@ fun LoginScreen(
                     text = "¿No tienes cuenta? Regístrate",
                     color = LinkGreen,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.clickable { navController.navigate("register") }
+                    modifier = Modifier.clickable { navController.navigate("register") },
+                    fontSize = 14.sp * fontSize
                 )
             }
         }

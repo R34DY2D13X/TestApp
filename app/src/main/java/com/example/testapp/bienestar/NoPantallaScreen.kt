@@ -1,6 +1,7 @@
 package com.example.testapp.bienestar
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -18,8 +19,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,15 +32,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.testapp.ajustes.SettingsViewModel
+import com.example.testapp.ui.theme.DarkBackground
+import com.example.testapp.ui.theme.PrimaryTextColor
 import kotlinx.coroutines.delay
 
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoPantallaScreen(navController: NavController) {
+fun NoPantallaScreen(
+    navController: NavController,
+    settingsViewModel: SettingsViewModel = viewModel()
+) {
+    val settings by settingsViewModel.uiState.collectAsState()
+    val fontSize = settings.fontSize
+    val highContrast = settings.highContrast
 
-    var contador by remember { androidx.compose.runtime.mutableIntStateOf(300) } // 5 min en segundos
+    val dynamicBg = if (highContrast) Color.Black else DarkBackground
+    val dynamicPrimaryText = if (highContrast) Color.White else PrimaryTextColor
+    val dynamicAccentColor = if (highContrast) Color.Yellow else Color(0xFFF2B880)
+    val dynamicButtonTextColor = if (highContrast) Color.Black else Color(0xFF252440)
+
+    var contador by remember { mutableStateOf(300) } // 5 min en segundos
     var enEjecucion by remember { mutableStateOf(false) }
 
     LaunchedEffect(enEjecucion) {
@@ -48,17 +66,20 @@ fun NoPantallaScreen(navController: NavController) {
     }
 
     Scaffold(
+        containerColor = dynamicBg,
         topBar = {
             TopAppBar(
-                title = { Text("Modo sin pantalla") },
+                title = { Text("Modo sin pantalla", color = dynamicPrimaryText, fontSize = 20.sp * fontSize) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar"
+                            contentDescription = "Regresar",
+                            tint = dynamicPrimaryText
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = dynamicBg)
             )
         }
     ) { padding ->
@@ -66,36 +87,38 @@ fun NoPantallaScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .background(dynamicBg),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
 
             Text(
                 text = "Evita usar tu celular durante este tiempo",
-                fontSize = 22.sp,
-                color = Color(0xFFF2B880),
-                lineHeight = 28.sp // CORREGIDO: Se eliminó el punto extra.
+                fontSize = 22.sp * fontSize,
+                color = dynamicAccentColor,
+                lineHeight = 28.sp * fontSize
             )
 
             Spacer(modifier = Modifier.height(25.dp))
 
             Text(
                 text = "${contador / 60}:${String.format("%02d", contador % 60)}",
-                fontSize = 48.sp,
-                color = Color.White
+                fontSize = 48.sp * fontSize,
+                color = dynamicPrimaryText
             )
 
             Spacer(modifier = Modifier.height(40.dp))
 
             Button(
                 onClick = { enEjecucion = !enEjecucion },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF2B880)),
+                colors = ButtonDefaults.buttonColors(containerColor = dynamicAccentColor),
                 modifier = Modifier.width(160.dp)
             ) {
                 Text(
                     if (enEjecucion) "Pausar" else "Iniciar",
-                    color = Color(0xFF252440)
+                    color = dynamicButtonTextColor,
+                    fontSize = 18.sp * fontSize
                 )
             }
 
@@ -103,12 +126,13 @@ fun NoPantallaScreen(navController: NavController) {
 
             Button(
                 onClick = { navController.popBackStack() },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF2B880)),
+                colors = ButtonDefaults.buttonColors(containerColor = dynamicAccentColor),
                 modifier = Modifier.width(160.dp)
             ) {
                 Text(
                     "Regresar",
-                    color = Color(0xFF252440)
+                    color = dynamicButtonTextColor,
+                    fontSize = 18.sp * fontSize
                 )
             }
         }

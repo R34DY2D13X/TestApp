@@ -11,16 +11,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import kotlinx.coroutines.delay
+import com.example.testapp.ajustes.SettingsViewModel
 import com.example.testapp.ui.theme.DarkBackground
 import com.example.testapp.ui.theme.CardBackgroundColor
 import com.example.testapp.ui.theme.PrimaryTextColor
+import kotlinx.coroutines.delay
 
 @Composable
-fun EstiramientoScreen(navController: NavController) {
+fun EstiramientoScreen(
+    navController: NavController,
+    settingsViewModel: SettingsViewModel = viewModel()
+) {
+    val settings by settingsViewModel.uiState.collectAsState()
+    val fontSize = settings.fontSize
+    val highContrast = settings.highContrast
 
-    // Lista de estiramientos guiados
+    val dynamicBg = if (highContrast) Color.Black else DarkBackground
+    val dynamicPrimaryText = if (highContrast) Color.White else PrimaryTextColor
+    val dynamicCardBg = if (highContrast) Color(0xFF1C1C1E) else CardBackgroundColor
+    val dynamicAccentColor = if (highContrast) Color.Yellow else Color(0xFFDEB28A)
+
     val pasos = listOf(
         "Estiramiento de cuello" to "Inclina la cabeza a los lados suavemente.",
         "Estiramiento de hombros" to "Rota los hombros hacia adelante y atrás.",
@@ -49,7 +61,7 @@ fun EstiramientoScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(dynamicBg)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -57,8 +69,8 @@ fun EstiramientoScreen(navController: NavController) {
 
         Text(
             text = pasos[pasoActual].first,
-            color = PrimaryTextColor,
-            fontSize = 24.sp,
+            color = dynamicPrimaryText,
+            fontSize = 24.sp * fontSize,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
@@ -67,8 +79,8 @@ fun EstiramientoScreen(navController: NavController) {
 
         Text(
             text = pasos[pasoActual].second,
-            color = Color(0xFFDEB28A),
-            fontSize = 18.sp,
+            color = dynamicAccentColor,
+            fontSize = 18.sp * fontSize,
             textAlign = TextAlign.Center
         )
 
@@ -76,8 +88,8 @@ fun EstiramientoScreen(navController: NavController) {
 
         Text(
             text = tiempo.toString(),
-            color = PrimaryTextColor,
-            fontSize = 48.sp,
+            color = dynamicPrimaryText,
+            fontSize = 48.sp * fontSize,
             fontWeight = FontWeight.Bold
         )
 
@@ -85,10 +97,10 @@ fun EstiramientoScreen(navController: NavController) {
 
         Button(
             onClick = { enCuentaAtras = true },
-            colors = ButtonDefaults.buttonColors(containerColor = CardBackgroundColor),
+            colors = ButtonDefaults.buttonColors(containerColor = dynamicCardBg),
             modifier = Modifier.fillMaxWidth(0.6f)
         ) {
-            Text("Iniciar")
+            Text("Iniciar", color = dynamicPrimaryText, fontSize = 16.sp * fontSize)
         }
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -98,20 +110,20 @@ fun EstiramientoScreen(navController: NavController) {
                 enCuentaAtras = false
                 if (pasoActual < pasos.size - 1) pasoActual++ else navController.popBackStack()
             },
-            colors = ButtonDefaults.buttonColors(containerColor = CardBackgroundColor.copy(alpha = 0.8f)),
+            colors = ButtonDefaults.buttonColors(containerColor = dynamicCardBg.copy(alpha = 0.8f)),
             modifier = Modifier.fillMaxWidth(0.6f)
         ) {
-            Text("Siguiente")
+            Text("Siguiente", color = dynamicPrimaryText, fontSize = 16.sp * fontSize)
         }
 
         Spacer(modifier = Modifier.height(14.dp))
 
         Button(
             onClick = { navController.popBackStack() },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDEB28A)),
+            colors = ButtonDefaults.buttonColors(containerColor = dynamicAccentColor),
             modifier = Modifier.fillMaxWidth(0.6f)
         ) {
-            Text("Regresar")
+            Text("Regresar", color = if (highContrast) Color.Black else Color.White, fontSize = 16.sp * fontSize)
         }
     }
 }

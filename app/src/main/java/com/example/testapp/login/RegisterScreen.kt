@@ -1,5 +1,6 @@
 package com.example.testapp.login
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,14 +17,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.testapp.MyApplication
 import com.example.testapp.ajustes.SettingsViewModel
-import com.example.testapp.auth.UserRole
-import com.example.testapp.data.db.User
+import com.example.testapp.data.User
+import com.example.testapp.data.UserRepository
 import com.example.testapp.ui.theme.DarkBackground
 import com.example.testapp.ui.theme.PrimaryTextColor
-import com.example.testapp.ui.theme.TextSecondary
-import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 
 @Composable
 fun RegisterScreen(
@@ -31,9 +31,8 @@ fun RegisterScreen(
     settingsViewModel: SettingsViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val database = (context.applicationContext as MyApplication).database
-    val userDao = database.userDao()
-    val coroutineScope = rememberCoroutineScope()
+    val auth = FirebaseAuth.getInstance()
+    val userRepository = UserRepository()
 
     val settings by settingsViewModel.uiState.collectAsState()
     val fontSize = settings.fontSize
@@ -44,8 +43,8 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
 
-    // --- Colores Dinámicos ---
     val dynamicPrimaryText = if (highContrast) Color.White else PrimaryTextColor
     val dynamicSecondaryText = if (highContrast) Color.Yellow else PrimaryTextColor.copy(alpha = 0.8f)
     val dynamicBorder = if (highContrast) Color.White else MaterialTheme.colorScheme.primary
@@ -158,29 +157,45 @@ fun RegisterScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            Button(onClick = {
-                if (password != confirmPassword) {
-                    errorMessage = "Las contraseñas no coinciden"
-                    return@Button
-                }
-                if (nombre.isBlank() || email.isBlank() || password.isBlank()) {
-                    errorMessage = "Por favor, rellena todos los campos"
-                    return@Button
-                }
-                coroutineScope.launch {
-                    val existingUser = userDao.getUserByEmail(email)
-                    if (existingUser != null) {
-                        errorMessage = "Ya existe un usuario con este correo"
-                    } else {
-                        val newUser = User(email = email, nombre = nombre, password = password, role = UserRole.USER)
-                        userDao.insertUser(newUser)
-                        navController.navigate("login") {
-                            popUpTo("login") { inclusive = true }
-                        }
+            if (isLoading) {
+                CircularProgressIndicator(color = dynamicPrimaryText)
+            } else {
+                Button(onClick = {
+                    if (password != confirmPassword) {
+                        errorMessage = "Las contraseñas no coinciden"
+                        return@Button
                     }
+                    if (nombre.isBlank() || email.isBlank() || password.isBlank()) {
+                        errorMessage = "Por favor, rellena todos los campos"
+                        return@Button
+                    }
+
+                    isLoading = true
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            isLoading = false
+                            if (task.isSuccessful) {
+                                val firebaseUser = auth.currentUser
+                                val newUser = User(
+                                    userId = firebaseUser?.uid ?: "",
+                                    email = email,
+                                    nombre = nombre
+                                )
+                                userRepository.insertUser(newUser)
+                                Toast.makeText(context, "Registro exitoso", Toast.LENGTH_SHORT).show()
+                                navController.navigate("login") {
+                                    popUpTo("register") { inclusive = true }
+                                }
+                            } else {
+                                errorMessage = when (task.exception) {
+                                    is FirebaseAuthUserCollisionException -> "El correo ya está en uso."
+                                    else -> "Error en el registro: ${task.exception?.message}"
+                                }
+                            }
+                        }
+                }) {
+                    Text("Registrarse", fontSize = 16.sp * fontSize)
                 }
-            }) {
-                Text("Registrarse", fontSize = 16.sp * fontSize)
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(

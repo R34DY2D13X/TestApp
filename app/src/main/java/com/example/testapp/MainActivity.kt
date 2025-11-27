@@ -69,7 +69,6 @@ fun AppNavigation() {
     
     var backPressedTime by remember { mutableStateOf(0L) }
 
-    // --- LÓGICA DEL BOTÓN "ATRÁS" ---
     BackHandler(enabled = true) {
         if (currentRoute == "menu") {
             if (backPressedTime + 2000 > System.currentTimeMillis()) {
@@ -79,7 +78,6 @@ fun AppNavigation() {
             }
             backPressedTime = System.currentTimeMillis()
         } else {
-            // Si estamos en cualquier otra pantalla, navegar al menú
             navController.navigate("menu") {
                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
                 launchSingleTop = true
@@ -105,11 +103,12 @@ fun AppNavigation() {
             composable("login") { LoginScreen(navController, settingsViewModel) }
             composable("register") { RegisterScreen(navController, settingsViewModel) }
             composable("menu") { MenuScreen(navController, settingsViewModel) }
+            composable("home") { HomeScreen(settingsViewModel) }
             composable("sueño") { SueñoScreen(navController, settingsViewModel) }
             composable("bienestar") { BienestarScreen(navController, settingsViewModel) }
-            composable("respiracion") { RespiracionScreen(navController) }
-            composable("no_pantalla") { NoPantallaScreen(navController) }
-            composable("estiramiento") { EstiramientoScreen(navController) }
+            composable("respiracion") { RespiracionScreen(navController, settingsViewModel) }
+            composable("no_pantalla") { NoPantallaScreen(navController, settingsViewModel) }
+            composable("estiramiento") { EstiramientoScreen(navController, settingsViewModel) }
 
             composable("temporizadorP") {
                 TimerUI(
