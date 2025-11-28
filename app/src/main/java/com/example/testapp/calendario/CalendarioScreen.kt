@@ -3,7 +3,17 @@ package com.example.testapp.calendario
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -41,28 +51,21 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
-enum class CalendarItemType { ESTUDIO, HABITO, PERSONAL }
-
-data class CalendarItem(
-    val date: LocalDate,
-    val title: String,
-    val description: String,
-    val type: CalendarItemType
-)
-
 @Composable
 fun CalendarioScreen(
     navController: NavController,
-    settingsViewModel: SettingsViewModel = viewModel()
+    settingsViewModel: SettingsViewModel = viewModel(),
+    calendarViewModel: CalendarViewModel = viewModel()
 ) {
 
     val settings by settingsViewModel.uiState.collectAsState()
     val highContrast = settings.highContrast
 
+    val tasks by calendarViewModel.tasksFlow.collectAsState()
+
     var currentMonth by remember { mutableStateOf(LocalDate.now()) }
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
 
-    val calendarItems = remember { mutableStateListOf<CalendarItem>() }
     var showAddDialog by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
@@ -73,186 +76,197 @@ fun CalendarioScreen(
     val dynamicSecondaryText = if (highContrast) Color.LightGray else TextSecondary
     val dynamicSelectedBg = if (highContrast) LinkGreen else ButtonPrimary.copy(alpha = 0.7f)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(dynamicBg)
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                containerColor = LinkGreen
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Añadir tarea", tint = Color.Black)
+            }
+        }
     ) {
-
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .fillMaxSize()
+                .background(dynamicBg)
+                .padding(it)
         ) {
-            IconButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
-                Icon(Icons.Default.KeyboardArrowLeft, "Mes anterior", tint = dynamicPrimaryText)
-            }
-            Text(
-                text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("es")))
-                    .replaceFirstChar { it.titlecase(Locale.getDefault()) },
-                color = dynamicPrimaryText,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-            IconButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
-                Icon(Icons.Default.KeyboardArrowRight, "Mes siguiente", tint = dynamicPrimaryText)
-            }
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceAround
-        ) {
-            val daysOfWeek = DayOfWeek.values().map { it.getDisplayName(TextStyle.SHORT, Locale("es")) }
-            daysOfWeek.forEach { day ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp, horizontal = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(onClick = { currentMonth = currentMonth.minusMonths(1) }) {
+                    Icon(Icons.Default.KeyboardArrowLeft, "Mes anterior", tint = dynamicPrimaryText)
+                }
                 Text(
-                    text = day.uppercase(),
-                    color = dynamicSecondaryText,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f)
+                    text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("es")))
+                        .replaceFirstChar { it.titlecase(Locale.getDefault()) },
+                    color = dynamicPrimaryText,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
                 )
+                IconButton(onClick = { currentMonth = currentMonth.plusMonths(1) }) {
+                    Icon(Icons.Default.KeyboardArrowRight, "Mes siguiente", tint = dynamicPrimaryText)
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                val daysOfWeek = DayOfWeek.values().map { it.getDisplayName(TextStyle.SHORT, Locale("es")) }
+                daysOfWeek.forEach { day ->
+                    Text(
+                        text = day.uppercase(),
+                        color = dynamicSecondaryText,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
 
-        val firstDayOfMonth = currentMonth.withDayOfMonth(1)
-        val lastDayOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
-        val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
-        val totalDays = 42
-        val dates = (1..totalDays).map {
-            val dayOffset = it - firstDayOfWeek - 1
-            firstDayOfMonth.plusDays(dayOffset.toLong())
-        }
+            Spacer(modifier = Modifier.height(12.dp))
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(7),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            items(dates) { date ->
-                val day = date.dayOfMonth
-                val isSelected = date == selectedDate
-                val itemsOfDay = calendarItems.filter { it.date == date }
+            val firstDayOfMonth = currentMonth.withDayOfMonth(1)
+            val lastDayOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
+            val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
+            val totalDays = 42
+            val dates = (1..totalDays).map {
+                val dayOffset = it - firstDayOfWeek - 1
+                firstDayOfMonth.plusDays(dayOffset.toLong())
+            }
 
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .clickable { selectedDate = date }
-                        .background(
-                            if (isSelected) dynamicSelectedBg
-                            else Color.Transparent
-                        )
-                        .padding(top = 4.dp, bottom = 2.dp, start = 4.dp, end = 4.dp),
-                    contentAlignment = Alignment.TopCenter
-                ) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(7),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(dates) { date ->
+                    val day = date.dayOfMonth
+                    val isSelected = date == selectedDate
+                    val itemsOfDay = tasks.filter { LocalDate.parse(it.date) == date }
 
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { selectedDate = date }
+                            .background(
+                                if (isSelected) dynamicSelectedBg
+                                else Color.Transparent
+                            )
+                            .padding(top = 4.dp, bottom = 2.dp, start = 4.dp, end = 4.dp),
+                        contentAlignment = Alignment.TopCenter
                     ) {
-                        Text(
-                            text = day.toString(),
-                            color = dynamicPrimaryText,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = 17.sp
-                        )
 
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
-                            itemsOfDay.take(3).forEach { item ->
-                                val dotColor = when (item.type) {
-                                    CalendarItemType.ESTUDIO -> ButtonPrimary
-                                    CalendarItemType.HABITO -> LinkGreen
-                                    CalendarItemType.PERSONAL -> Color(0xFFFFD54F)
+                            Text(
+                                text = day.toString(),
+                                color = dynamicPrimaryText,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 17.sp
+                            )
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                itemsOfDay.take(3).forEach { item ->
+                                    val dotColor = when (item.type) {
+                                        TaskType.ESTUDIO -> ButtonPrimary
+                                        TaskType.HABITO -> LinkGreen
+                                        TaskType.PERSONAL -> Color(0xFFFFD54F)
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(dotColor)
+                                    )
                                 }
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(dotColor)
-                                )
                             }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            val detailFormatter = DateTimeFormatter.ofPattern("d 'de' MMMM", Locale("es"))
+            val itemsSelectedDay = tasks.filter { LocalDate.parse(it.date) == selectedDate }.sortedBy { it.type.name }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+
+                Text(
+                    text = "Pendientes para ${selectedDate.format(detailFormatter)}",
+                    color = dynamicPrimaryText,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 19.sp
+                )
+
+                if (itemsSelectedDay.isEmpty()) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text(
+                        text = "No tienes nada registrado para este día.\nToca el botón + para agregar algo.",
+                        color = dynamicSecondaryText,
+                        fontSize = 14.sp
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(itemsSelectedDay) { item ->
+                            TaskItemRow(item = item, highContrast = highContrast)
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        val detailFormatter = DateTimeFormatter.ofPattern("d 'de' MMMM", Locale("es"))
-        val itemsSelectedDay =
-            calendarItems.filter { it.date == selectedDate }.sortedBy { it.type.name }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-
-            Text(
-                text = "Pendientes para ${selectedDate.format(detailFormatter)}",
-                color = dynamicPrimaryText,
-                fontWeight = FontWeight.Bold,
-                fontSize = 19.sp
-            )
-
-            if (itemsSelectedDay.isEmpty()) {
-                Spacer(modifier = Modifier.height(14.dp))
-                Text(
-                    text = "No tienes nada registrado para este día.\nToca el botón + para agregar algo.",
-                    color = dynamicSecondaryText,
-                    fontSize = 14.sp
-                )
-            } else {
-                Spacer(modifier = Modifier.height(10.dp))
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(itemsSelectedDay) { item ->
-                        CalendarItemRow(item = item, highContrast = highContrast)
-                        Spacer(modifier = Modifier.height(8.dp))
+        if (showAddDialog) {
+            AddCalendarItemDialog(
+                initialDate = selectedDate,
+                onDismiss = { showAddDialog = false },
+                onSave = { newTask ->
+                    calendarViewModel.addTask(newTask)
+                    showAddDialog = false
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Evento añadido al calendario")
                     }
                 }
-            }
+            )
         }
-    }
-
-    if (showAddDialog) {
-        AddCalendarItemDialog(
-            initialDate = selectedDate,
-            onDismiss = { showAddDialog = false },
-            onSave = { newItem ->
-                calendarItems.add(newItem)
-                showAddDialog = false
-                scope.launch {
-                    snackbarHostState.showSnackbar("Evento añadido al calendario")
-                }
-            }
-        )
     }
 }
 
 @Composable
-private fun CalendarItemRow(item: CalendarItem, highContrast: Boolean) {
+private fun TaskItemRow(item: Task, highContrast: Boolean) {
     val chipColor = when (item.type) {
-        CalendarItemType.ESTUDIO -> ButtonPrimary
-        CalendarItemType.HABITO -> LinkGreen
-        CalendarItemType.PERSONAL -> Color(0xFFFFD54F)
+        TaskType.ESTUDIO -> ButtonPrimary
+        TaskType.HABITO -> LinkGreen
+        TaskType.PERSONAL -> Color(0xFFFFD54F)
     }
     val dynamicCardBg = if (highContrast) Color(0xFF2E2E2E) else ButtonPrimary.copy(alpha = 0.4f)
 
@@ -305,9 +319,9 @@ private fun CalendarItemRow(item: CalendarItem, highContrast: Boolean) {
         ) {
             Text(
                 text = when (item.type) {
-                    CalendarItemType.ESTUDIO -> "Estudio"
-                    CalendarItemType.HABITO -> "Hábito"
-                    CalendarItemType.PERSONAL -> "Personal"
+                    TaskType.ESTUDIO -> "Estudio"
+                    TaskType.HABITO -> "Hábito"
+                    TaskType.PERSONAL -> "Personal"
                 },
                 color = chipColor,
                 fontSize = 12.sp,
@@ -322,11 +336,11 @@ private fun CalendarItemRow(item: CalendarItem, highContrast: Boolean) {
 private fun AddCalendarItemDialog(
     initialDate: LocalDate,
     onDismiss: () -> Unit,
-    onSave: (CalendarItem) -> Unit
+    onSave: (Task) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf(CalendarItemType.ESTUDIO) }
+    var type by remember { mutableStateOf(TaskType.ESTUDIO) }
     var selectedDate by remember { mutableStateOf(initialDate) }
 
     var isTitleError by remember { mutableStateOf(false) }
@@ -418,21 +432,21 @@ private fun AddCalendarItemDialog(
                 ) {
                     CalendarTypeChip(
                         label = "Estudio",
-                        isSelected = type == CalendarItemType.ESTUDIO,
+                        isSelected = type == TaskType.ESTUDIO,
                         color = ButtonPrimary
-                    ) { type = CalendarItemType.ESTUDIO }
+                    ) { type = TaskType.ESTUDIO }
 
                     CalendarTypeChip(
                         label = "Hábito",
-                        isSelected = type == CalendarItemType.HABITO,
+                        isSelected = type == TaskType.HABITO,
                         color = LinkGreen
-                    ) { type = CalendarItemType.HABITO }
+                    ) { type = TaskType.HABITO }
 
                     CalendarTypeChip(
                         label = "Personal",
-                        isSelected = type == CalendarItemType.PERSONAL,
+                        isSelected = type == TaskType.PERSONAL,
                         color = Color(0xFFFFD54F)
-                    ) { type = CalendarItemType.PERSONAL }
+                    ) { type = TaskType.PERSONAL }
                 }
 
                 Spacer(modifier = Modifier.height(26.dp))
@@ -451,8 +465,8 @@ private fun AddCalendarItemDialog(
                                 isTitleError = true
                             } else {
                                 onSave(
-                                    CalendarItem(
-                                        date = selectedDate,
+                                    Task(
+                                        date = selectedDate.toString(),
                                         title = title,
                                         description = description,
                                         type = type

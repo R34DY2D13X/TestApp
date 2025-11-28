@@ -103,7 +103,6 @@ fun AppNavigation() {
             composable("login") { LoginScreen(navController, settingsViewModel) }
             composable("register") { RegisterScreen(navController, settingsViewModel) }
             composable("menu") { MenuScreen(navController, settingsViewModel) }
-            composable("home") { HomeScreen(settingsViewModel) }
             composable("sueño") { SueñoScreen(navController, settingsViewModel) }
             composable("bienestar") { BienestarScreen(navController, settingsViewModel) }
             composable("respiracion") { RespiracionScreen(navController, settingsViewModel) }
